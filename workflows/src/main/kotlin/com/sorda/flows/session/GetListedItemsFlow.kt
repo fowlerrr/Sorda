@@ -7,6 +7,7 @@ import net.corda.core.flows.FlowSession
 import net.corda.core.flows.InitiatedBy
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
+import net.corda.core.node.ServiceHub
 import net.corda.core.utilities.unwrap
 import java.time.Instant
 
@@ -26,7 +27,7 @@ object GetListedItemsFlow {
         override fun call(): List<BidState> {
             val notaryIdentities = serviceHub.networkMapCache.notaryIdentities.toSet()
 
-            return serviceHub.networkMapCache.allNodes.filter {
+            return getPayload(serviceHub) + serviceHub.networkMapCache.allNodes.filter {
                 // Remove ourselves and notary identities
                 it != serviceHub.myInfo && it.legalIdentities.none { identity -> notaryIdentities.contains(identity) }
             }.map {
@@ -45,13 +46,18 @@ object GetListedItemsFlow {
 
         @Suspendable
         override fun call() {
-            val payload = serviceHub.vaultService.queryBy(BidState::class.java).states.map {
-                it.state.data
-            }.filter {
-                it.expiry > Instant.now()
-            }
+            val payload = getPayload(serviceHub)
             requesterSession.send(payload)
         }
+    }
+
+    fun getPayload(serviceHub: ServiceHub): List<BidState> {
+        return serviceHub.vaultService.queryBy(BidState::class.java).states.map {
+            it.state.data
+        }.filter {
+            it.expiry > Instant.now()
+        }
+
     }
 }
 

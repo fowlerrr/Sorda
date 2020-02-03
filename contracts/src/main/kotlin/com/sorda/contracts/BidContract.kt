@@ -1,7 +1,11 @@
 package com.sorda.contracts
 
 import com.sorda.states.BidState
-import net.corda.core.contracts.*
+import net.corda.core.contracts.CommandData
+import net.corda.core.contracts.Contract
+import net.corda.core.contracts.TypeOnlyCommandData
+import net.corda.core.contracts.requireSingleCommand
+import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 import utils.SORDA
 
@@ -18,7 +22,7 @@ class BidContract: Contract {
     }
 
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.single()
+        val command = tx.commands.requireSingleCommand<Commands>()
 
         fun verifySingleInputState() {
             requireThat {
