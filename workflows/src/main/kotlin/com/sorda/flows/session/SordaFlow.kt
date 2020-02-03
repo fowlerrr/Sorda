@@ -73,7 +73,7 @@ class SordaFlow (
 }
 
 
-@InitiatedBy(CreateAndListItemFlow::class)
+@InitiatedBy(SordaFlow::class)
 class StartParkingHandshakeFlowResponder(
         private val counterpartySession: FlowSession
 ) : FlowLogic <Unit> () {
