@@ -64,12 +64,6 @@ class BidContract: Contract {
             }
         }
 
-        fun verifyBidProperties(bidState: BidState) {
-            // Bond-specific constraints.
-            requireThat {
-            }
-        }
-
         when (command.value) {
             is Commands.List -> {
                 requireThat {

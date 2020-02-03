@@ -14,6 +14,7 @@ class ItemContract: Contract {
     // Command.
     interface Commands : CommandData {
         class Transfer : TypeOnlyCommandData(), Commands
+        class Issue : TypeOnlyCommandData(), Commands
     }
 
     // Contract code.
@@ -27,6 +28,12 @@ class ItemContract: Contract {
                 val output = tx.outputsOfType<ItemState>().single()
                 "Only the owner can change in an item transfer" using
                         ( input.id == output.id && input.name == output.name)
+            }
+            is Commands.Issue -> {
+                // Shape checks
+                "No input ItemState must be consumed." using (tx.inputs.isEmpty())
+                "Exactly one output ItemState must be created." using (tx.outputs.size == 1)
+                val output = tx.outputs.single() as ItemState
             }
         }
     }
