@@ -25,7 +25,6 @@ import java.time.Instant
 @StartableByRPC
 class CreateAndListItemFlow (
         val description: String,
-        val lastSuccessfulBidder: Party,
         val lastPrice: Amount<TokenType>,
         val expiry: Instant
 ) : FlowLogic<SignedTransaction>()  {
@@ -98,6 +97,11 @@ class ListItemFlow(private val description: String,
                                 lastPrice = lastPrice,
                                 expiry = expiry)
 
+        // with input state with command
+        val utx = TransactionBuilder(notary = notary)
+                .addOutputState(bidState, BidContract.ID)
+                .addCommand(command)
+
         return bidState
     }
 }
@@ -105,6 +109,20 @@ class ListItemFlow(private val description: String,
 class CreateItemFlow() : FlowLogic<Unit>() {
     @Suspendable
     override fun call() {
+        // Create Transaction
 
+        val notary = serviceHub.networkMapCache.notaryIdentities.single()
+
+        // list of signers
+        val command = Command(BidContract.Commands.List(), listOf())
+
+        val itemState = Unit
+
+        // with input state with command
+        val utx = TransactionBuilder(notary = notary)
+                .addOutputState(itemState, BidContract.ID)
+                .addCommand(command)
+
+        return itemState
     }
 }
