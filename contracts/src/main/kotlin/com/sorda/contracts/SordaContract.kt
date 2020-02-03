@@ -45,6 +45,7 @@ class BidContract: Contract {
     interface Commands : CommandData {
         class List : TypeOnlyCommandData(), Commands
         class PlaceBid : TypeOnlyCommandData(), Commands
+        class CloseBid : TypeOnlyCommandData(), Commands
     }
 
     override fun verify(tx: LedgerTransaction) {
@@ -102,6 +103,9 @@ class BidContract: Contract {
                     "There must be two signers." using (command.signers.toSet().size == 2)
                     "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
                 }
+            }
+            is Commands.CloseBid -> {
+
             }
         }
     }

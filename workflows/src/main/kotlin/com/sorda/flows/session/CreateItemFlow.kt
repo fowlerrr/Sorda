@@ -3,29 +3,22 @@ package com.sorda.flows.session
 import co.paralleluniverse.fibers.Suspendable
 import com.r3.corda.lib.tokens.contracts.types.TokenType
 import com.sorda.contracts.BidContract
-import com.sorda.contracts.SordaContract
+import com.sorda.contracts.ItemContract
 import com.sorda.states.BidState
 import com.sorda.states.ItemState
-import com.sorda.states.SordaState
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.Command
-import net.corda.core.contracts.UniqueIdentifier
-import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
-import net.corda.core.identity.Party
-import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import utils.SORDA
 import java.time.Instant
 
 
+
 /**
- * Self-issue BidState and self-sign
+ * Self-issue ItemState and self-sign
  */
-class ListItemFlow(private val item: ItemState,
-                   private val lastPrice: Amount<TokenType>,
-                   private val expiry: Instant) : FlowLogic<BidState>() {
+class CreateItemFlow(private val description: String) : FlowLogic<ItemState>() {
 
     override val progressTracker: ProgressTracker = tracker()
 
@@ -39,27 +32,26 @@ class ListItemFlow(private val item: ItemState,
     }
 
     @Suspendable
-    override fun call() : BidState {
+    override fun call() : ItemState {
         // Create Transaction
 
         val notary = serviceHub.networkMapCache.notaryIdentities.single()
 
         // list of signers
-        val command = Command(BidContract.Commands.List(), listOf())
+        val command = Command(ItemContract.Commands.Issue(), listOf())
 
-        // Item can be listed
-        val bidState = BidState(description = item.name,
-                issuer = item.owner,
-                lastSuccessfulBidder = ourIdentity,
-                lastPrice = lastPrice,
-                expiry = expiry)
+        val itemState = ItemState(owner = ourIdentity, name = description)
 
         // with input state with command
         val utx = TransactionBuilder(notary = notary)
                 // .addInputState would add the input states but there's no input state for an issuance
-                .addOutputState(bidState, BidContract.ID)
+                .addOutputState(itemState, ItemContract.ID)
                 .addCommand(command)
 
+        // Verify Tx
+        utx.verify(serviceHub)
+
+        // Sign tx (Issuer signs tx)
         val ptx = serviceHub.signInitialTransaction(utx,
                 listOf(ourIdentity.owningKey)
         )
@@ -73,12 +65,6 @@ class ListItemFlow(private val item: ItemState,
         subFlow(FinalityFlow(stx, listOf(),
                 END.childProgressTracker()))
 
-        return bidState
+        return itemState
     }
 }
-
-
-
-
-
-
