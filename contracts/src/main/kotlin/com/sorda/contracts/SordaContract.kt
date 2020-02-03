@@ -33,3 +33,15 @@ class SordaContract: Contract {
         }
     }
 }
+
+class BidContract: Contract {
+    companion object {
+        @JvmStatic
+        val ID = "com.sorda.contracts.BidContract"
+    }
+
+    override fun verify(tx: LedgerTransaction) {
+
+    }
+
+}
