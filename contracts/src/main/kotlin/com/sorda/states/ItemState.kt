@@ -2,7 +2,7 @@ package com.sorda.states
 
 
 import com.sorda.contracts.ItemContract
-import com.sorda.schema.SordaContractsSchemaV1
+import com.sorda.schema.ItemContractsSchemaV1
 import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
@@ -17,18 +17,15 @@ import net.corda.core.schemas.QueryableState
 data class ItemState (
     val owner: Party,
     val name: String,
-    val id: UniqueIdentifier = UniqueIdentifier()
+    override val linearId: UniqueIdentifier = UniqueIdentifier()
 ) : LinearState, QueryableState {
 
     override val participants: List<AbstractParty> = listOf(owner)
 
-    // TODO: Check if we double-generating this unnecessarily
-    override val linearId = id
-
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
-        if (schema is SordaContractsSchemaV1) {
-            return SordaContractsSchemaV1.PersistentItem(
-                id = id.id,
+        if (schema is ItemContractsSchemaV1) {
+            return ItemContractsSchemaV1.PersistentItem(
+                id = linearId.id,
                 name = name,
                 owner = owner
             )
@@ -38,6 +35,6 @@ data class ItemState (
     }
 
     override fun supportedSchemas(): Iterable<MappedSchema> {
-        return listOf(SordaContractsSchemaV1)
+        return listOf(ItemContractsSchemaV1)
     }
 }

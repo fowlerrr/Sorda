@@ -1,21 +1,14 @@
-package com.sorda.flows.session
+package com.sorda.states
 
 import co.paralleluniverse.fibers.Suspendable
+import com.sorda.contracts.BidContract
 import com.sorda.contracts.ItemContract
-import com.sorda.states.ItemState
 import net.corda.core.contracts.Command
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.contracts.requireThat
-import net.corda.core.flows.CollectSignaturesFlow
-import net.corda.core.flows.FinalityFlow
-import net.corda.core.flows.FlowLogic
-import net.corda.core.flows.FlowSession
-import net.corda.core.flows.InitiatedBy
-import net.corda.core.flows.InitiatingFlow
-import net.corda.core.flows.ReceiveFinalityFlow
-import net.corda.core.flows.SignTransactionFlow
-import net.corda.core.flows.StartableByRPC
-import net.corda.core.flows.StartableByService
+import net.corda.core.flows.*
 import net.corda.core.identity.Party
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -26,12 +19,12 @@ import net.corda.core.utilities.ProgressTracker
  *
  */
 
-@StartableByService
 @InitiatingFlow
-@StartableByRPC
+@SchedulableFlow
 class TransferItemFlow (
         private val newOwner: Party,
-        private val item: ItemState
+        private val itemLinearId: UniqueIdentifier,
+        private val bidLinearId: UniqueIdentifier
 ) : FlowLogic<SignedTransaction>()  {
 
     override val progressTracker: ProgressTracker = tracker()
@@ -50,24 +43,35 @@ class TransferItemFlow (
 
         val notary = serviceHub.networkMapCache.notaryIdentities.single()
 
-        val otherPartySession = initiateFlow(newOwner)
+        val itemCommand = Command(ItemContract.Commands.Transfer(),
+                listOf(newOwner.owningKey))
 
-        val command = Command(ItemContract.Commands.Transfer(), listOf(newOwner.owningKey))
+        val bidCommand = Command(BidContract.Commands.CloseBid(),
+                listOf(ourIdentity.owningKey))
 
-//        val stateAndRef = serviceHub.toStateAndRef<ItemState>(item)
+        // Grab the item
+        val criteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(itemLinearId))
+        val oldItemState = serviceHub.vaultService.queryBy(ItemState::class.java, criteria).states.single()
+
+        // Grab the last bid (so that we can consume it)
+        val bidCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(bidLinearId))
+        val oldBidState = serviceHub.vaultService.queryBy(BidState::class.java, bidCriteria).states.single()
 
         // Change owner here
-//        val oldItem = stateAndRef.state.data
-//        val newItem = oldItem.copy(owner = newOwner, participants = oldItem.participants + newOwner)
-        val newItem = item.copy(owner = newOwner, participants = item.participants + newOwner)
+        val oldItem = oldItemState.state.data
+        val newItem = oldItem.copy(owner = newOwner)
+
         // Create Transaction
         val utx = TransactionBuilder(notary = notary)
-//            .addInputState(stateAndRef)
-            .addOutputState(newItem, ItemContract.ID)
-            .addCommand(command)
+                .addInputState(oldItemState)
+                .addInputState(oldBidState)
+                .addOutputState(newItem, ItemContract.ID)
+                .addCommand(itemCommand)
+                .addCommand(bidCommand)
 
         val ptx = serviceHub.signInitialTransaction(utx)
 
+        val otherPartySession = initiateFlow(newOwner)
         val stx = subFlow(CollectSignaturesFlow(
                 ptx,
                 listOf(otherPartySession))
@@ -76,7 +80,6 @@ class TransferItemFlow (
         // sessions with the non-local participants
         return subFlow(FinalityFlow(stx, listOf(),
                 END.childProgressTracker()))
-
     }
 }
 
@@ -92,8 +95,8 @@ class TransferItemFlowResponder(
         val transactionSigner: SignTransactionFlow
         transactionSigner = object : SignTransactionFlow(counterpartySession) {
             @Suspendable override fun checkTransaction(stx: SignedTransaction) = requireThat {
-                val output = stx.tx.outputsOfType<ItemState>().single()
-                "I must receive the item" using (serviceHub.myInfo.legalIdentities.contains(output.owner))
+//                val output = stx.tx.outputsOfType<ItemState>().single()
+//                "I must receive the item" using (serviceHub.myInfo.legalIdentities.contains(output.owner))
             }
         }
         val transaction= subFlow(transactionSigner)
@@ -101,7 +104,3 @@ class TransferItemFlowResponder(
         val txRecorded = subFlow(ReceiveFinalityFlow(counterpartySession, expectedId))
     }
 }
-
-
-
-

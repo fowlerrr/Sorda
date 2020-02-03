@@ -1,18 +1,14 @@
 package com.sorda.flows.session
 
 import co.paralleluniverse.fibers.Suspendable
-import com.r3.corda.lib.tokens.contracts.types.TokenType
-import com.sorda.contracts.BidContract
 import com.sorda.contracts.ItemContract
-import com.sorda.states.BidState
 import com.sorda.states.ItemState
-import net.corda.core.contracts.Amount
 import net.corda.core.contracts.Command
-import net.corda.core.flows.*
+import net.corda.core.flows.CollectSignaturesFlow
+import net.corda.core.flows.FinalityFlow
+import net.corda.core.flows.FlowLogic
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import java.time.Instant
-
 
 
 /**

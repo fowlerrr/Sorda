@@ -26,14 +26,14 @@ class ItemContract: Contract {
                 //"There must be one output" using(tx.outputs.size == 1)
                 val input = tx.inputsOfType<ItemState>().single()
                 val output = tx.outputsOfType<ItemState>().single()
-                "Only the owner can change in an item transfer" using
-                        ( input.id == output.id && input.name == output.name)
+//                "Only the owner can change in an item transfer" using
+//                        ( input.linearId == output.linearId && input.name == output.name)
             }
             is Commands.Issue -> {
                 // Shape checks
                 "No input ItemState must be consumed." using (tx.inputs.isEmpty())
-                "Exactly one output ItemState must be created." using (tx.outputs.size == 1)
-                val output = tx.outputs.single() as ItemState
+                val output = tx.outputsOfType<ItemState>()
+                "Exactly one output ItemState must be created." using (output.size == 1)
             }
         }
     }

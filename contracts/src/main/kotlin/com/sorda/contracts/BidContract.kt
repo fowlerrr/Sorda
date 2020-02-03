@@ -5,37 +5,6 @@ import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
 import utils.SORDA
 
-// Contract and state.
-class SordaContract: Contract {
-    companion object {
-        @JvmStatic
-        val ID = "com.sorda.contracts.SordaContract"
-    }
-
-    // Command.
-    interface Commands : CommandData {
-        class Start : TypeOnlyCommandData(), Commands
-        class End : TypeOnlyCommandData(), Commands
-    }
-
-    // Contract code.
-    override fun verify(tx: LedgerTransaction) = requireThat {
-        val command = tx.commands.requireSingleCommand<Commands>()
-
-        when (command.value) {
-            is Commands.Start -> {
-                //"There must be one output" using(tx.outputs.size == 1)
-                //val state = tx.outputsOfType<SordaState>().single()
-            }
-            is Commands.End -> {
-                //val state = tx.outputsOfType<SordaState>().single()
-                //"Make sure participants are different" using (state.participants[0] != state.participants[1])
-                //"End time cannot be less than start time" using (state.startTime <= state.endTime)
-            }
-        }
-    }
-}
-
 class BidContract: Contract {
     companion object {
         @JvmStatic
@@ -53,15 +22,17 @@ class BidContract: Contract {
 
         fun verifySingleInputState() {
             requireThat {
-                "This contract supports only a single input state" using (tx.inputStates.size == 1)
-                "There should be one input state of type BidState" using (tx.inputStates.single() is BidState)
+                val bidState= tx.inputsOfType<BidState>()
+                "This contract supports only a single input state" using (bidState.size == 1)
+                "There should be one input state of type BidState" using (bidState.single() is BidState)
             }
         }
 
         fun verifySingleOutputState() {
             requireThat {
-                "This contract supports only a single output state" using (tx.outputStates.size == 1)
-                "There should be one output state of type BidState" using (tx.outputStates.single() is BidState)
+                val bidState= tx.outputsOfType<BidState>()
+                "This contract supports only a single output state" using (bidState.size == 1)
+                "There should be one output state of type BidState" using (bidState.single() is BidState)
             }
         }
 
@@ -70,13 +41,10 @@ class BidContract: Contract {
                 requireThat {
                     // Constraints on the shape of the Transaction
                     "No inputs should be consumed when creating and listing an item for bidding." using (tx.inputStates.isEmpty())
-
                     verifySingleOutputState()
-                    val outputState = tx.outputStates.single() as BidState
-
+                    val outputState = tx.outputsOfType<BidState>().single()
                     // Bid specific constraints
                     "Listing price should be positive." using (outputState.lastPrice > 0.SORDA)
-
                     // Constraints on the signers
                     // TODO: do we need any?
                 }
@@ -87,8 +55,8 @@ class BidContract: Contract {
                     verifySingleInputState()
                     verifySingleOutputState()
 
-                    val inputState = tx.inputStates.single() as BidState
-                    val outputState = tx.outputStates.single() as BidState
+                    val inputState = tx.inputsOfType<BidState>().single()
+                    val outputState = tx.outputsOfType<BidState>().single()
 
                     "Issuer can not place a Bid." using (inputState.issuer != outputState.lastSuccessfulBidder)
 

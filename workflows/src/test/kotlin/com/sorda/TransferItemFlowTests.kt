@@ -1,7 +1,9 @@
 package com.sorda
 
-import com.r3.corda.lib.tokens.contracts.states.FungibleToken
-import com.sorda.flows.session.TransferItemFlow
+import com.google.common.testing.TearDown
+import com.natpryce.hamkrest.describe
+import com.sorda.flows.session.CreateAndListItemFlow
+import com.sorda.states.TransferItemFlow
 import com.sorda.states.ItemState
 import net.corda.core.concurrent.CordaFuture
 import net.corda.core.contracts.UniqueIdentifier
@@ -15,8 +17,10 @@ import net.corda.testing.node.MockNetworkNotarySpec
 import net.corda.testing.node.MockNodeParameters
 import net.corda.testing.node.StartedMockNode
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.time.Instant
 import kotlin.test.assertEquals
 
 class TransferItemFlowTests {
@@ -54,25 +58,30 @@ class TransferItemFlowTests {
         mockNetwork.runNetwork()
     }
 
-    fun transferItem (item: ItemState, newOwner: Party) : CordaFuture<SignedTransaction> {
-        val d = nodeA.startFlow(TransferItemFlow(newOwner = newOwner, item = item))
+    @After
+    fun tearDown () {
+        mockNetwork.stopNodes()
+    }
+
+    fun createAndListItem (description: String, price: Double, expiry: Instant) : CordaFuture<SignedTransaction> {
+        val d = nodeA.startFlow(CreateAndListItemFlow(
+                description = description, lastPrice = price, expiry = expiry
+        ))
         mockNetwork.runNetwork()
         return d
     }
 
     @Test
     fun `Transfer Item Test`() {
-        val nodeA = nodeA.info.legalIdentities.single()
-        val nodeB = nodeB.info.legalIdentities.single()
+        val partyA = nodeA.info.legalIdentities.single()
+        val partyB = nodeB.info.legalIdentities.single()
 
         // issue tokens
-        val item = ItemState(nodeA, "test", UniqueIdentifier())
-        
-        val transfer = transferItem(item, nodeB).getOrThrow()
+        val transfer = createAndListItem("Our Item", 10.0, Instant.now()).getOrThrow()
         val newItemState = transfer.coreTransaction.outputsOfType<ItemState>().single()
-        assertThat(newItemState.owner).isEqualTo(nodeB)
+        assertEquals(newItemState.owner, partyA)
 
-        mockNetwork.stopNodes()
+
     }
 
 }

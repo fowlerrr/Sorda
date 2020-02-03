@@ -7,23 +7,13 @@ import net.corda.core.schemas.PersistentState
 import java.util.*
 import javax.persistence.*
 
-object SordaContractsSchema
+object ItemContractsSchema
 
-object SordaContractsSchemaV1 : MappedSchema (
-        schemaFamily = SordaContractsSchema::class.java,
+object ItemContractsSchemaV1 : MappedSchema (
+        schemaFamily = ItemContractsSchema::class.java,
         version = 1,
-        mappedTypes = listOf(PersistentSorda::class.java)
+        mappedTypes = listOf(PersistentItem::class.java)
 ) {
-    @Entity
-    @Table(name = "sorda_state")
-    data class PersistentSorda(
-        @Column(name = "identifier", nullable = false)
-        val id: UUID,
-        @Column(name = "value", nullable = false)
-        var amount: Long
-    ) : PersistentState() {
-            constructor () : this (UUID.randomUUID(), 0)
-    }
 
     @Entity
     @Table(name = "item_state")

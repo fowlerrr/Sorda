@@ -1,6 +1,7 @@
 package com.sorda.webserver
 
 
+import com.sorda.flows.session.CreateAndListItemFlow
 import com.sorda.flows.session.ListItemFlow
 import com.sorda.flows.tokens.IssueSordaTokens
 import net.corda.core.messaging.startFlow
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.time.Instant
 
 
 @RestController
@@ -63,7 +65,8 @@ class Controller(rpc: NodeRPCConnection) {
     @PostMapping(value = ["/list_new_item"], headers = ["Content-Type=application/json"])
     fun listNewItem (@RequestBody newItem: NewItem): ResponseEntity<Map<String, Any>> = try {
         Controller.logger.info("Creating an account on node ", myIdentity)
-        val txHash= proxy.startFlow(::ListItemFlow, newItem.description).returnValue.getOrThrow()
+        val txHash= proxy.startFlow(::CreateAndListItemFlow, newItem.description,
+                newItem.amount, Instant.now()).returnValue.getOrThrow()
 
         ResponseEntity.status(HttpStatus.CREATED).body(mapOf(
                 "hash" to txHash,
@@ -78,7 +81,8 @@ class Controller(rpc: NodeRPCConnection) {
 }
 
 data class NewItem constructor (
-    val description: String
+    val description: String,
+    val amount: Double
 )
 
 data class AddTokens constructor(
