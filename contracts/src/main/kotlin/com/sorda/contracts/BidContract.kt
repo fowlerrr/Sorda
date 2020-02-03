@@ -18,7 +18,7 @@ class BidContract: Contract {
     }
 
     override fun verify(tx: LedgerTransaction) {
-        val command = tx.commands.requireSingleCommand<Commands>()
+        val command = tx.commands.single()
 
         fun verifySingleInputState() {
             requireThat {
