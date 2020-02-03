@@ -11,8 +11,10 @@ import net.corda.core.identity.Party
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
+import net.corda.core.serialization.CordaSerializable
 
 
+@CordaSerializable
 @BelongsToContract(ItemContract::class)
 data class ItemState (
     val owner: Party,
