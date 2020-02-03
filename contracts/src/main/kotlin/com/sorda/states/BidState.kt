@@ -11,7 +11,7 @@ import net.corda.core.identity.Party
 import java.time.Instant
 
 @BelongsToContract(BidContract::class)
-class BidState (
+data class BidState (
         val description: String,
         val issuer: Party,
         val lastSuccessfulBidder: Party,
