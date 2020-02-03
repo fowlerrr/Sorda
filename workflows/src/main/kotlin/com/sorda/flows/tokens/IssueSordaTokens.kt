@@ -25,7 +25,6 @@ import utils.SordaTokenType
 @StartableByRPC
 @InitiatingFlow
 class IssueSordaTokens (
-        private val party: Party,
         private val quantity: Double
 ) : FlowLogic<SignedTransaction>() {
 
@@ -41,7 +40,7 @@ class IssueSordaTokens (
 
     @Suspendable
     override fun call() : SignedTransaction {
-        val tokens = quantity of SordaTokenType issuedBy ourIdentity heldBy party
+        val tokens = quantity of SordaTokenType issuedBy ourIdentity heldBy ourIdentity
 
         return subFlow(IssueTokens(listOf(tokens), emptyList()))
 

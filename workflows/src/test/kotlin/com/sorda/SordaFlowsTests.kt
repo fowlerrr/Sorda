@@ -52,7 +52,7 @@ class SordaFlowsTests {
     }
 
     fun issueTokens (party: Party, quantity: Double) : CordaFuture<SignedTransaction> {
-        val d = nodeA.startFlow(IssueSordaTokens(party = party, quantity = quantity))
+        val d = nodeA.startFlow(IssueSordaTokens(quantity = quantity))
         mockNetwork.runNetwork()
         return d
     }
