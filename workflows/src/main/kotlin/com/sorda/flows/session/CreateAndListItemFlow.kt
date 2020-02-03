@@ -69,6 +69,7 @@ class CreateAndListItemFlow (
                 expiry = expiry,
                 itemLinearId = itemState.linearId)
 
+        println("Writing $bidState")
 
         // with input state with command
         val utx = TransactionBuilder(notary = notary)
