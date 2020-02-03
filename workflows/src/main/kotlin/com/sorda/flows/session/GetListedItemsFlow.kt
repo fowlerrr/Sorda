@@ -31,7 +31,6 @@ object GetListedItemsFlow {
                 it != serviceHub.myInfo && it.legalIdentities.none { identity -> notaryIdentities.contains(identity) }
             }.map {
                 val party = it.legalIdentities.last()
-                println("Asking $it")
                 val flowSession = initiateFlow(party)
                 flowSession.receive<List<BidState>>().unwrap { it }
             }.flatten()
@@ -46,15 +45,12 @@ object GetListedItemsFlow {
 
         @Suspendable
         override fun call() {
-            println("handling call")
             val payload = serviceHub.vaultService.queryBy(BidState::class.java).states.map {
                 it.state.data
             }.filter {
-                it.expiry <= Instant.now()
+                it.expiry > Instant.now()
             }
-            println("Sending $payload")
             requesterSession.send(payload)
-            println("Sent")
         }
     }
 }
