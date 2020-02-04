@@ -59,7 +59,7 @@ class PlaceBidSecondFlow(private val issuer: Party,
             val newBidState = oldBidState.copy(lastPrice = offerPrice.SORDA, lastSuccessfulBidder = newLastSuccessfulBidder)
 
             // Create Transaction
-            val signers = if (oldLastSuccessfulBidder == issuer) listOf(issuer.owningKey)
+            val signers = if (oldLastSuccessfulBidder == issuer) listOf(issuer.owningKey, newLastSuccessfulBidder.owningKey)
                                     else listOf(issuer.owningKey, oldLastSuccessfulBidder.owningKey, newLastSuccessfulBidder.owningKey)
             val bidCommand =
                     Command(BidContract.Commands.PlaceBid(),

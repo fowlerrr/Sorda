@@ -6,10 +6,10 @@ import com.sorda.flows.session.PlaceBidSecondFlow
 import com.sorda.flows.tokens.IssueSordaTokens
 import com.sorda.states.BidState
 import com.sorda.states.ItemState
-import net.corda.core.concurrent.CordaFuture
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.FlowException
+import net.corda.core.flows.FlowLogic.Companion.sleep
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.node.services.Vault
@@ -25,6 +25,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import utils.SORDA
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.test.assertEquals
@@ -134,6 +135,14 @@ class PlaceBidFlowTest {
                 "Last price should be updated to $.")
         assertEquals(partyC, bidState3.state.data.lastSuccessfulBidder,
                 "Last successful bidder should be updated.")
+
+        sleep(Duration.ofSeconds(30))
+
+        // Check
+
+        val finalItem = getItem(nodeC, itemState.linearId).state.data
+
+        assertEquals(partyC, finalItem.owner)
     }
 
     private fun getPayload(node: StartedMockNode, bidLinearId: UniqueIdentifier): StateAndRef<BidState> {
@@ -146,6 +155,13 @@ class PlaceBidFlowTest {
         }
 
         return bidState
+    }
+
+    private fun getItem(node: StartedMockNode, itemLinearId: UniqueIdentifier): StateAndRef<ItemState> {
+        val itemCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(itemLinearId), status = Vault.StateStatus.UNCONSUMED)
+        val itemState = node.services.vaultService.queryBy(ItemState::class.java, itemCriteria).states.single()
+
+        return itemState
     }
 
     @Test

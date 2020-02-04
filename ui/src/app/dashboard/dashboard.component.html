@@ -1,0 +1,138 @@
+<style>
+    .card {
+        margin-top: 10px;
+    }
+</style>
+<div class="container-fluid">
+    <nav class="navbar navbar-light bg-light">
+        <span class="navbar-brand mb-0 h1">Auction - {{node}}</span>
+    </nav>
+
+    <div class="card-deck">
+        <div class="card">
+            <div class="card-header">
+                Account
+            </div>
+            <div class="card-body">
+                <!-- <div class="row">
+                    <div class="col-sm">Balance:</div>
+                    <div class="col-sm">120.89 Tokens</div>
+                </div> -->
+                <div class="row">
+                    <h4 class="col-sm mt-4">Add tokens</h4>
+                </div>
+                <div class="row">
+                    <form>
+                        <div class="form-group col-sm">
+                            <label for="amount">
+                                Amount
+                            </label>
+                            <input type="number" [(ngModel)]="tokenAmount" [ngModelOptions]="{standalone: true}" id="amount" class="form-control" />
+                        </div>
+                        <div class="form-group col-sm">
+                            <button type="button" (click)="addTokens()" class="btn btn-outline-primary btn-block">Add</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="card">
+            <div class="card-header">
+                My items
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Item name</th>
+                            <th>Listed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of myItems">
+                            <td>{{item.description}}</td>
+                            <td>{{item.listed}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="card-deck">
+        <div class="card">
+            <div class="card-header">
+                Buy
+            </div>
+            <div class="card-body">
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Item name</th>
+                            <th>Current price</th>
+                            <th>Expires</th>
+                            <th>Bid</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of listedItems" [ngClass]="{'table-success': item.winning == true}">
+                            <td>{{item.description}}</td>
+                            <td>{{item.lastPrice}}</td>
+                            <td>{{item.expiry}}</td>
+                            <td>
+                                <form>
+                                    <div class="form-group col-sm">
+                                        <label for="amount_{{item.bidId}}">
+                                            Amount
+                                        </label>
+                                        <input type="number" [(ngModel)]="item.bidAmount" [ngModelOptions]="{standalone: true}" id="amount_{{item.bidId}}" class="form-control" />
+                                    </div>
+                                    <div class="form-group col-sm">
+                                        <button type="button" (click)="bid(item)" class="btn btn-outline-primary btn-block">Bid</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                Sell
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="form-group col-sm">
+                        <label for="itemName">
+                            Item name
+                        </label>
+                        <input type="text" id="itemName" class="form-control" [(ngModel)]="newItemName"
+                            [ngModelOptions]="{standalone: true}" />
+                    </div>
+                    <div class="form-group col-sm">
+                        <label for="itemPrice">
+                            Initial price
+                        </label>
+                        <input type="number" id="itemPrice" class="form-control" [(ngModel)]="newItemPrice"
+                            [ngModelOptions]="{standalone: true}" />
+                    </div>
+                    <div class="form-group col-sm">
+                        <label for="itemExpiry">
+                            Initial expiry
+                        </label>
+                        <input type="text" id="itemExpiry" class="form-control" [(ngModel)]="newItemExpiry"
+                            [ngModelOptions]="{standalone: true}" />
+                    </div>
+                    <div class="form-group col-sm">
+                        <button type="button" class="btn btn-outline-primary btn-block" (click)="createItem()">Create
+                            listing</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
