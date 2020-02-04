@@ -79,6 +79,7 @@ class GetListedItemsFlowTests {
 
         // Party C runs get item flow
         val listedItems = nodeC.startFlow(GetListedItemsFlow.Initiator()).getOrThrow()
+//        mockNetwork.runNetwork()
 
         assert(listedItems.size == 3)
         listedItems.map { it.description }.containsAll(listOf("New Bike", "Nice Hat", "Car"))

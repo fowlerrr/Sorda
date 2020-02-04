@@ -66,7 +66,7 @@ class TransferItemFlowTests {
     }
 
     @Test
-    fun `Create And List Item Test`() {
+    fun `Create And List Item that immediately expires Test`() {
         val partyA = nodeA.info.legalIdentities.single()
         val partyB = nodeB.info.legalIdentities.single()
 
