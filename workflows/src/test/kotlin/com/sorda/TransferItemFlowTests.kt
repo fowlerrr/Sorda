@@ -1,6 +1,8 @@
 package com.sorda
 
 import com.sorda.flows.session.CreateAndListItemFlow
+import com.sorda.flows.session.GetAllItemsFlow
+import com.sorda.flows.session.GetListedItemsFlow
 import com.sorda.flows.tokens.IssueSordaTokens
 import com.sorda.states.ItemState
 import net.corda.core.concurrent.CordaFuture
@@ -10,7 +12,6 @@ import net.corda.core.utilities.getOrThrow
 import net.corda.node.services.Permissions
 import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.ALICE_NAME
-import net.corda.testing.core.BOB_NAME
 import net.corda.testing.driver.DriverParameters
 import net.corda.testing.driver.driver
 import net.corda.testing.node.MockNetwork
@@ -105,18 +106,25 @@ class TransferItemFlowTests {
         ) {
             val user = User("mark", "dadada", setOf(Permissions.all()))
             val aliceNode = startNode(providedName = ALICE_NAME, rpcUsers = listOf(user)).getOrThrow()
-            val bobNode = startNode(providedName = BOB_NAME, rpcUsers = listOf(user)).getOrThrow()
 
             aliceNode.rpc.startFlowDynamic(IssueSordaTokens::class.java, 1000.0)
 
-            val item = aliceNode.rpc.startFlowDynamic(
+            val txn = aliceNode.rpc.startFlowDynamic(
                 CreateAndListItemFlow::class.java,
                 "red bike",
                 10.0,
                 Instant.now()
-            ).returnValue.getOrThrow().coreTransaction.outputsOfType(ItemState::class.java).single()
+            ).returnValue.getOrThrow()
 
+            val item = txn.coreTransaction.outputsOfType(ItemState::class.java).single()
             assertThat(item.owner).isEqualTo(aliceNode.nodeInfo.legalIdentities.first())
+
+
+            val items = aliceNode.rpc.startFlowDynamic(GetListedItemsFlow.Initiator::class.java).returnValue.getOrThrow()
+            assertThat(items.toSet()).isEmpty()
+
+            val allItems = aliceNode.rpc.startFlowDynamic(GetAllItemsFlow.Initiator::class.java).returnValue.getOrThrow()
+            assertThat(allItems.toSet()).containsAll(listOf(item))
         }
     }
 }
