@@ -28,5 +28,3 @@ data class BidState (
         return ScheduledActivity(flowLogicRefFactory.create(TransferItemFlow::class.java, lastSuccessfulBidder, itemLinearId, linearId), expiry)
     }
 }
-
-

@@ -1,23 +1,17 @@
 package com.sorda.flows.session
 
 import co.paralleluniverse.fibers.Suspendable
-import com.sorda.contracts.BidContract
 import com.sorda.states.BidState
-import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
-import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.node.StatesToRecord
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.serialization.CordaSerializable
-import net.corda.core.transactions.SignedTransaction
-import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.unwrap
-import utils.SORDA
 import java.time.Instant
 
 /**
@@ -28,10 +22,10 @@ import java.time.Instant
 @StartableByService
 @StartableByRPC
 @InitiatingFlow
-class PlaceBidFirstFlow
-    (private val issuer: Party,
-     private val bidLinearId: UniqueIdentifier,
-     private val offerPrice: Double
+class PlaceBidFirstFlow (
+        private val issuer: Party,
+        private val bidLinearId: UniqueIdentifier,
+        private val offerPrice: Double
 ) : FlowLogic<Unit>() {
     @Suspendable
     override fun call()  {
@@ -42,8 +36,8 @@ class PlaceBidFirstFlow
 
         val tx = subFlow(ReceiveTransactionFlow(otherSideSession = issuerSession, statesToRecord = StatesToRecord.ALL_VISIBLE ))
 
+        // Sanity check
         assert(tx.coreTransaction.outputsOfType<BidState>().single().linearId == bidLinearId)
-
     }
 }
 
