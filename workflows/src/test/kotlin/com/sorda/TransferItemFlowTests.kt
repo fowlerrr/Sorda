@@ -5,9 +5,7 @@ import com.sorda.flows.session.GetAllItemsFlow
 import com.sorda.flows.session.GetListedItemsFlow
 import com.sorda.flows.tokens.IssueSordaTokens
 import com.sorda.states.ItemState
-import net.corda.core.concurrent.CordaFuture
 import net.corda.core.identity.CordaX500Name
-import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.services.Permissions
 import net.corda.testing.common.internal.testNetworkParameters
@@ -74,6 +72,7 @@ class TransferItemFlowTests {
 
         // Create new item and listing for new item
         val item = createAndListItem(
+            nodeA, mockNetwork,
             "Our Item",
             10.0,
             Instant.now()
