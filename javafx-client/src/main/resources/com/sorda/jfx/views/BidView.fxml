@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.text.Font?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="222.0" prefWidth="365.0" style="-fx-background-color: #383838;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Label layoutX="137.0" layoutY="14.0" text="Make Bid" textFill="WHITE">
+         <font>
+            <Font size="20.0" />
+         </font>
+      </Label>
+      <GridPane layoutX="30.0" layoutY="40.0" prefHeight="148.0" prefWidth="301.0">
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="155.0" minWidth="10.0" prefWidth="92.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="219.0" minWidth="10.0" prefWidth="162.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <Label contentDisplay="CENTER" text="Item Description" textFill="WHITE" GridPane.halignment="LEFT" GridPane.valignment="CENTER" />
+             <Label contentDisplay="CENTER" text="Current Price" textFill="WHITE" GridPane.rowIndex="1" />
+             <Label contentDisplay="CENTER" text="Amount to bid" textFill="WHITE" GridPane.halignment="LEFT" GridPane.rowIndex="2" GridPane.valignment="CENTER" />
+             <Label contentDisplay="CENTER" text="Time left" textFill="WHITE" GridPane.halignment="LEFT" GridPane.rowIndex="3" GridPane.valignment="CENTER" />
+             <TextField fx:id="host" prefHeight="27.0" prefWidth="135.0" GridPane.columnIndex="1" />
+             <TextField fx:id="port" text="10005" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+             <TextField fx:id="username" text="user1" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+             <PasswordField fx:id="password" text="test" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+         </children>
+      </GridPane>
+      <Button fx:id="loginButton" layoutX="247.0" layoutY="297.0" mnemonicParsing="false" prefHeight="39.0" prefWidth="106.0" text="Login">
+         <font>
+            <Font size="19.0" />
+         </font>
+      </Button>
+   </children>
+</Pane>

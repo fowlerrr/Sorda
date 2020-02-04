@@ -1,0 +1,5 @@
+
+.tf-red-border {
+     -fx-text-box-border: red ;
+     -fx-focus-color: red ;
+}
