@@ -11,16 +11,18 @@ import net.corda.core.identity.Party
 import java.time.Instant
 
 @BelongsToContract(BidContract::class)
-data class BidState (
+data class ExpiryState (
         val description: String,
         val issuer: Party,
-        val lastSuccessfulBidder: Party,
-        val lastPrice: Amount<TokenType>,
         val expiry: Instant,
         val itemLinearId: UniqueIdentifier,
         override val linearId: UniqueIdentifier = UniqueIdentifier()
-) : LinearState {
+) : SchedulableState, LinearState {
 
     override val participants: List<AbstractParty>
-        get() = listOf<Party>(issuer, lastSuccessfulBidder)
+        get() = listOf<Party>(issuer)
+
+    override fun nextScheduledActivity(thisStateRef: StateRef, flowLogicRefFactory: FlowLogicRefFactory): ScheduledActivity? {
+        return ScheduledActivity(flowLogicRefFactory.create(TransferItemFlow::class.java, itemLinearId, linearId), expiry)
+    }
 }

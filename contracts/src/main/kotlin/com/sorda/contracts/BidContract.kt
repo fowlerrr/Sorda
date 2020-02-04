@@ -74,10 +74,12 @@ class BidContract: Contract {
                     "Price must increase." using (inputState.lastPrice < outputState.lastPrice)
 
                     // Constraints on the signers.
-                    val expectedSigners = listOf(outputState.issuer.owningKey, outputState.lastSuccessfulBidder.owningKey)
-                   // "There must be two signers." using (command.signers.toSet().size == 2)
-                   // "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
-                    // TODO: FIXME ^^
+                    // Note: issuer may be the lastSuccessfulBidder
+                    val expectedSigners = listOf(
+                            outputState.issuer.owningKey,
+                            inputState.lastSuccessfulBidder.owningKey,
+                            outputState.lastSuccessfulBidder.owningKey)
+                     "The issuer and the old and new lastSuccessfulBidder all must be signers." using (command.signers.containsAll(expectedSigners))
                 }
             }
             is Commands.CloseBid -> {
@@ -93,8 +95,8 @@ class BidContract: Contract {
                     "Item must be transferred to last successful bidder." using (inputBidState.lastSuccessfulBidder == outputItemState.owner)
 
                     // Constraints on the signers.
-                    val expectedSigners = listOf(inputBidState.issuer.owningKey, inputBidState.lastSuccessfulBidder.owningKey)
-                    "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
+//                    val expectedSigners = listOf(inputBidState.issuer.owningKey, inputBidState.lastSuccessfulBidder.owningKey)
+//                    "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
                 }
             }
         }

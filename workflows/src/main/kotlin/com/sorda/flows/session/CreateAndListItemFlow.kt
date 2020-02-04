@@ -2,8 +2,10 @@ package com.sorda.flows.session
 
 import co.paralleluniverse.fibers.Suspendable
 import com.sorda.contracts.BidContract
+import com.sorda.contracts.ExpiryContract
 import com.sorda.contracts.ItemContract
 import com.sorda.states.BidState
+import com.sorda.states.ExpiryState
 import com.sorda.states.ItemState
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
@@ -57,6 +59,7 @@ class CreateAndListItemFlow (
 
         // Bid
         val bidCommand = Command(BidContract.Commands.List(), listOf(ourIdentity.owningKey))
+        val expiryCommand = Command(ExpiryContract.Commands.List(), listOf(ourIdentity.owningKey))
         val itemCommand = Command(ItemContract.Commands.Issue(), listOf(ourIdentity.owningKey))
 
         val itemState = ItemState(owner = ourIdentity, name = description)
@@ -69,6 +72,12 @@ class CreateAndListItemFlow (
                 expiry = expiry,
                 itemLinearId = itemState.linearId)
 
+        val expiryState = ExpiryState(
+                description = description,
+                issuer = ourIdentity,
+                expiry = expiry,
+                itemLinearId = itemState.linearId)
+
         println("Writing $bidState")
 
         // with input state with command
@@ -77,7 +86,9 @@ class CreateAndListItemFlow (
                 .addOutputState(itemState, ItemContract.ID)
                 .addCommand(itemCommand)
                 .addOutputState(bidState, BidContract.ID)
+                .addOutputState(expiryState, ExpiryContract.ID)
                 .addCommand(bidCommand)
+                .addCommand(expiryCommand)
 
         // Verify Tx
         utx.verify(serviceHub)

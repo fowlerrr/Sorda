@@ -18,6 +18,7 @@ import net.corda.core.flows.ReceiveFinalityFlow
 import net.corda.core.flows.SchedulableFlow
 import net.corda.core.flows.SignTransactionFlow
 import net.corda.core.identity.Party
+import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
@@ -25,7 +26,7 @@ import net.corda.core.utilities.ProgressTracker
 
 
 /**
- * End the Auction.
+ * End the Auction, initiated on the Issuer Node.
  *
  * Transfer of Items from one party to another and closing the Bid after a successful auction
  */
@@ -33,7 +34,7 @@ import net.corda.core.utilities.ProgressTracker
 @InitiatingFlow
 @SchedulableFlow
 class TransferItemFlow (
-        private val newOwner: Party,
+        ///private val newOwner: Party,
         private val itemLinearId: UniqueIdentifier,
         private val bidLinearId: UniqueIdentifier
 ) : FlowLogic<SignedTransaction>()  {
@@ -52,21 +53,27 @@ class TransferItemFlow (
     @Suspendable
     override fun call(): SignedTransaction {
 
+        val bidCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(bidLinearId), status = Vault.StateStatus.UNCONSUMED)
+        val bidState = serviceHub.vaultService.queryBy(BidState::class.java, bidCriteria).states.single()
+
+        val newOwner = bidState.state.data.lastSuccessfulBidder
+
         val notary = serviceHub.networkMapCache.notaryIdentities.single()
 
         val itemCommand = Command(ItemContract.Commands.Transfer(),
                 listOf(newOwner.owningKey))
 
+        // TODO: check signers if nobody has bid on it
         val bidCommand = Command(BidContract.Commands.CloseBid(),
-                listOf(ourIdentity.owningKey))
+                listOf(ourIdentity.owningKey, newOwner.owningKey))
 
         // Grab the item
         val criteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(itemLinearId))
         val oldItemState = serviceHub.vaultService.queryBy(ItemState::class.java, criteria).states.single()
 
         // Grab the last bid (so that we can consume it)
-        val bidCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(bidLinearId))
-        val oldBidState = serviceHub.vaultService.queryBy(BidState::class.java, bidCriteria).states.single()
+        //val bidCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(bidLinearId), status = Vault.StateStatus.UNCONSUMED)
+        //val oldBidState = serviceHub.vaultService.queryBy(BidState::class.java, bidCriteria).states.single()
 
         // Change owner here
         val oldItem = oldItemState.state.data
@@ -75,7 +82,7 @@ class TransferItemFlow (
         // Create Transaction
         val utx = TransactionBuilder(notary = notary)
                 .addInputState(oldItemState)
-                .addInputState(oldBidState)
+                .addInputState(bidState)
                 .addOutputState(newItem, ItemContract.ID)
                 .addCommand(itemCommand)
                 .addCommand(bidCommand)
@@ -83,7 +90,7 @@ class TransferItemFlow (
         addMoveFungibleTokens(
                 transactionBuilder = utx,
                 serviceHub = serviceHub,
-                partiesAndAmounts = listOf(PartyAndAmount(newOwner, oldBidState.state.data.lastPrice)),
+                partiesAndAmounts = listOf(PartyAndAmount(newOwner, bidState.state.data.lastPrice)),
                 changeHolder = oldItem.owner)
 
         val ptx = serviceHub.signInitialTransaction(utx)
