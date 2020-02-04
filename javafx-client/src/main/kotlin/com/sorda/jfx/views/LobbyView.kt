@@ -144,7 +144,7 @@ class LobbyView : View("Main controller")  {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date in the future!")
             return
         }
-        nodeController.createAndListItem(description, startingPrice, Instant.ofEpochMilli(expiry.atStartOfDay().toEpochSecond(ZoneOffset.UTC)))
+        nodeController.createAndListItem(description, startingPrice, Instant.from(expiry.atStartOfDay()))
         refreshMyItems()
     }
 
