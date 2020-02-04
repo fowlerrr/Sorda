@@ -28,14 +28,14 @@ object GetAllItemsFlow {
         override fun call(): List<ItemState> {
             val notaryIdentities = serviceHub.networkMapCache.notaryIdentities.toSet()
 
-            return getPayload(serviceHub) + serviceHub.networkMapCache.allNodes.filter {
+            return (getPayload(serviceHub) + serviceHub.networkMapCache.allNodes.filter {
                 // Remove ourselves and notary identities
                 it != serviceHub.myInfo && it.legalIdentities.none { identity -> notaryIdentities.contains(identity) }
             }.map {
                 val party = it.legalIdentities.last()
                 val flowSession = initiateFlow(party)
                 flowSession.receive<List<ItemState>>().unwrap { it }
-            }.flatten()
+            }.flatten()).distinctBy { it.linearId }
         }
     }
 
