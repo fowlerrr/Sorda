@@ -67,20 +67,12 @@ class TransferItemFlowTests {
         mockNetwork.stopNodes()
     }
 
-    fun createAndListItem (description: String, price: Double, expiry: Instant) : CordaFuture<SignedTransaction> {
-        val d = nodeA.startFlow(CreateAndListItemFlow(
-                description = description, lastPrice = price, expiry = expiry
-        ))
-        mockNetwork.runNetwork()
-        return d
-    }
-
     @Test
     fun `Create And List Item that immediately expires Test`() {
         val partyA = nodeA.info.legalIdentities.single()
         val partyB = nodeB.info.legalIdentities.single()
 
-        // issue tokens
+        // Create new item and listing for new item
         val item = createAndListItem(
             "Our Item",
             10.0,
