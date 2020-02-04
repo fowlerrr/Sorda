@@ -90,8 +90,8 @@ class TransferItemFlow (
         addMoveFungibleTokens(
                 transactionBuilder = utx,
                 serviceHub = serviceHub,
-                partiesAndAmounts = listOf(PartyAndAmount(newOwner, bidState.state.data.lastPrice)),
-                changeHolder = oldItem.owner)
+                partiesAndAmounts = listOf(PartyAndAmount(oldItem.owner, oldBidState.state.data.lastPrice)),
+                changeHolder = newOwner)
 
         val ptx = serviceHub.signInitialTransaction(utx)
 

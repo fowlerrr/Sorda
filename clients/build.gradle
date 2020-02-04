@@ -33,13 +33,13 @@ dependencies {
     //compile "com.fasterxml.jackson.core:jackson-core"
     //compile "com.fasterxml.jackson.core:jackson-databind"
     //runtime "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
-    //runtime "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
     //runtime "com.fasterxml.jackson.module:jackson-module-kotlin"
 }
 
 
 springBoot {
-    mainClassName = "com.template.webserver.ServerKt"
+    mainClassName = "com.sorda.webserver.ServerKt"
 }
 
 task runClient(type: JavaExec, dependsOn: assemble) {
