@@ -4,21 +4,16 @@ import co.paralleluniverse.fibers.Suspendable
 import com.sorda.contracts.BidContract
 import com.sorda.states.BidState
 import net.corda.core.contracts.Command
-import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
-import net.corda.core.node.StatesToRecord
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
-import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import net.corda.core.utilities.unwrap
 import utils.SORDA
-import java.time.Instant
 
 /**
  * Place bid with the issuer of the item.
@@ -32,22 +27,30 @@ class PlaceBidSecondFlow(private val issuer: Party,
                    private val bidLinearId: UniqueIdentifier,
                    private val offerPrice: Double
 ) : FlowLogic<Unit>() {
+
+    override val progressTracker: ProgressTracker = tracker()
+
+    companion object {
+        object START : ProgressTracker.Step("Starting")
+        object END : ProgressTracker.Step("Ending") {
+            override fun childProgressTracker() = FinalityFlow.tracker()
+        }
+
+        fun tracker() = ProgressTracker(START, END)
+    }
+
     @Suspendable
     override fun call()  {
-//        // Notify issuer of the offer
+
         val issuerSession = initiateFlow(issuer)
-//        val offer = Offer(bidLinearId, offerPrice)
-//        issuerSession.send(offer)
-//
-//        val tx = subFlow(ReceiveTransactionFlow(otherSideSession = issuerSession, statesToRecord = StatesToRecord.ALL_VISIBLE ))
-//
-//        assert(tx.coreTransaction.outputsOfType<BidState>().single().linearId == bidLinearId)
+
+        /** At this point, Issuer has already received the offer */
 
         val bidCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(bidLinearId), status = Vault.StateStatus.UNCONSUMED)
         val oldBidStateStateAndRef = serviceHub.vaultService.queryBy(BidState::class.java, bidCriteria).states.single()
         val oldBidState = oldBidStateStateAndRef.state.data
 
-//        // Decide what to do
+        // Only update Bid when the new price is higher
         if (offerPrice.SORDA > oldBidState.lastPrice) {
             /** Accept offer */
             // Update BidState
@@ -70,36 +73,28 @@ class PlaceBidSecondFlow(private val issuer: Party,
 
             val ptx = serviceHub.signInitialTransaction(utx)
 
-
-           if (oldLastSuccessfulBidder == issuer) {
+            // If the no previous Bid has been accepted, the Issuer is still the lastSuccessfulBidder on the bid
+            // Then only the Issuer + Us have to sign
+            if (oldLastSuccessfulBidder == issuer) {
                 val stx = subFlow(CollectSignaturesFlow(
                         ptx,
                         listOf(issuerSession))
                 )
 
                 subFlow(FinalityFlow(stx, listOf(issuerSession),
-                    AcceptOrRejectBidFlow.Companion.END.childProgressTracker()))
+                        END.childProgressTracker()))
             }
             else {
-               val oldBidderSession = initiateFlow(oldLastSuccessfulBidder)
-               //val newBidderSession = initiateFlow(issuer)
+                val oldBidderSession = initiateFlow(oldLastSuccessfulBidder)
 
-               val stx = subFlow(CollectSignaturesFlow(
+                val stx = subFlow(CollectSignaturesFlow(
                        ptx,
                        listOf(issuerSession, oldBidderSession))
-               )
+                )
 
-               subFlow(FinalityFlow(stx, listOf(issuerSession, oldBidderSession),
-                       AcceptOrRejectBidFlow.Companion.END.childProgressTracker()))
+                subFlow(FinalityFlow(stx, listOf(issuerSession, oldBidderSession),
+                        END.childProgressTracker()))
             }
-//
-//            // sessions with the non-local participants
-//            subFlow(FinalityFlow(stx, listOfSigners.map{ initiateFlow(it) },
-//                    AcceptOrRejectBidFlow.Companion.END.childProgressTracker()))
-//        }
-//        else {
-//            /** Reject offer */
-//            // Do nothing
         }
     }
 }
@@ -134,17 +129,5 @@ class AcceptOrRejectBidSecondFlow(private val counterpartySession: FlowSession) 
         val transaction= subFlow(transactionSigner)
         val expectedId = transaction.id
         val txRecorded = subFlow(ReceiveFinalityFlow(counterpartySession, expectedId))
-    }
-
-    private fun getPayload(bidLinearId: UniqueIdentifier): StateAndRef<BidState> {
-        val bidCriteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(bidLinearId), status = Vault.StateStatus.UNCONSUMED)
-        val bidState = serviceHub.vaultService.queryBy(BidState::class.java, bidCriteria).states.single()
-
-        if (bidState.state.data.expiry < Instant.now()) {
-            // TODO: is this the best Exception?
-            throw FlowException("Item is expired")
-        }
-
-        return bidState
     }
 }
