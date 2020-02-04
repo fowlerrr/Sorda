@@ -8,7 +8,15 @@ import com.sorda.contracts.ItemContract
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.contracts.requireThat
-import net.corda.core.flows.*
+import net.corda.core.flows.CollectSignaturesFlow
+import net.corda.core.flows.FinalityFlow
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.FlowSession
+import net.corda.core.flows.InitiatedBy
+import net.corda.core.flows.InitiatingFlow
+import net.corda.core.flows.ReceiveFinalityFlow
+import net.corda.core.flows.SchedulableFlow
+import net.corda.core.flows.SignTransactionFlow
 import net.corda.core.identity.Party
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
@@ -80,6 +88,10 @@ class TransferItemFlow (
 
         val ptx = serviceHub.signInitialTransaction(utx)
 
+        if (newOwner == ourIdentity) {
+            return subFlow(FinalityFlow(ptx, listOf(), END.childProgressTracker()))
+        }
+
         val otherPartySession = initiateFlow(newOwner)
         val stx = subFlow(CollectSignaturesFlow(
                 ptx,
@@ -87,8 +99,7 @@ class TransferItemFlow (
         )
 
         // sessions with the non-local participants
-        return subFlow(FinalityFlow(stx, listOf(initiateFlow(newOwner)),
-                END.childProgressTracker()))
+        return subFlow(FinalityFlow(stx, listOf(otherPartySession), END.childProgressTracker()))
     }
 }
 

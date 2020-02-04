@@ -1,7 +1,11 @@
 package com.sorda.contracts
 
 import com.sorda.states.ItemState
-import net.corda.core.contracts.*
+import net.corda.core.contracts.CommandData
+import net.corda.core.contracts.Contract
+import net.corda.core.contracts.TypeOnlyCommandData
+import net.corda.core.contracts.requireSingleCommand
+import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 
 // Contract and state.
@@ -23,11 +27,11 @@ class ItemContract: Contract {
 
         when (command.value) {
             is Commands.Transfer -> {
-                //"There must be one output" using(tx.outputs.size == 1)
+//                "There must be one output" using(tx.outputs.size == 1)
                 val input = tx.inputsOfType<ItemState>().single()
                 val output = tx.outputsOfType<ItemState>().single()
-//                "Only the owner can change in an item transfer" using
-//                        ( input.linearId == output.linearId && input.name == output.name)
+                "Only the owner can change in an item transfer" using
+                        ( input.linearId == output.linearId && input.name == output.name)
             }
             is Commands.Issue -> {
                 // Shape checks
