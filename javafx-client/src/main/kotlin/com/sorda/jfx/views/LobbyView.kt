@@ -21,6 +21,7 @@ import tornadofx.selectedItem
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
@@ -121,7 +122,7 @@ class LobbyView : View("Main controller")  {
             return
         }
 
-        nodeController.bidOnItem(selectedItem.itemLinearId, bidAmount.toDouble())
+        nodeController.bidOnItem(selectedItem, bidAmount.toDouble())
         refreshMyBids()
     }
 
@@ -144,7 +145,7 @@ class LobbyView : View("Main controller")  {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date in the future!")
             return
         }
-        nodeController.createAndListItem(description, startingPrice, Instant.from(expiry.atStartOfDay()))
+        nodeController.createAndListItem(description, startingPrice, Instant.from(expiry.atStartOfDay(ZoneId.systemDefault())))
         refreshMyItems()
     }
 

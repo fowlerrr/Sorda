@@ -2,15 +2,18 @@ package com.sorda.jfx.controllers
 
 import com.sorda.flows.session.CreateAndListItemFlow
 import com.sorda.flows.session.GetListedItemsFlow
+import com.sorda.flows.session.PlaceBidFirstFlow
+import com.sorda.flows.session.PlaceBidSecondFlow
 import com.sorda.jfx.BidData
 import com.sorda.jfx.BidStatus
 import com.sorda.jfx.ItemData
 import com.sorda.jfx.NodeRPCConnection
 import com.sorda.states.BidState
 import com.sorda.states.ItemState
-import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.startFlow
 import net.corda.core.node.NodeInfo
+import net.corda.core.node.services.Vault
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.getOrThrow
 import tornadofx.Controller
 import java.time.Duration
@@ -67,8 +70,11 @@ class NodeController: Controller() {
 
     fun getMyItems(): List<ItemData> {
         val listedItems = getListedItems()
-        return nodeRPCConnection.proxy.vaultQuery(ItemState::class.java).states.map {
+        val criteria = QueryCriteria.VaultQueryCriteria(status = Vault.StateStatus.UNCONSUMED)
+        return nodeRPCConnection.proxy.vaultQueryByCriteria(criteria, ItemState::class.java).states.map {
             it.state.data
+        }.filter{
+            it.owner == ourIdentity.legalIdentities.last()
         }.map {
             val listed = listedItems.any { bidState -> bidState.itemLinearId == it.linearId }
             ItemData(it, listed)
@@ -87,8 +93,16 @@ class NodeController: Controller() {
         }
     }
 
-    fun bidOnItem(bidStateId: UniqueIdentifier, amountToBid: Double) {
-        // TODO
+    fun bidOnItem(bidState: BidState, offerPrice: Double) {
+        // Retrieve bid state so it is in our vault
+        nodeRPCConnection.proxy.startFlow({
+            issuer, itemId, offer -> PlaceBidFirstFlow(issuer, itemId, offer)
+        }, bidState.issuer, bidState.linearId, offerPrice).returnValue.getOrThrow(Duration.ofSeconds(20))
+
+        // Actually make the bid
+        nodeRPCConnection.proxy.startFlow({
+            issuer, itemId, offer -> PlaceBidSecondFlow(issuer, itemId, offer)
+        }, bidState.issuer, bidState.linearId, offerPrice).returnValue.getOrThrow(Duration.ofSeconds(20))
     }
 
     private fun initialiseNodeRPCConnection(host: String, port: Int, username: String, password: String) {
