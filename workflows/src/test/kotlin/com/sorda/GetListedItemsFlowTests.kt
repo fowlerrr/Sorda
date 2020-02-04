@@ -130,7 +130,7 @@ class GetListedItemsFlowTests {
 
             val items = aliceNode.rpc.startFlowDynamic(GetListedItemsFlow.Initiator::class.java).returnValue.getOrThrow()
             Assertions.assertThat(items.size).isEqualTo(4)
-            items.forEach { println(it.description) }
+            items.forEach { println("$it") }
         }
     }
 }

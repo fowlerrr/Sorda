@@ -1,6 +1,8 @@
 package com.sorda.states
 
 import co.paralleluniverse.fibers.Suspendable
+import com.r3.corda.lib.tokens.workflows.flows.move.addMoveFungibleTokens
+import com.r3.corda.lib.tokens.workflows.types.PartyAndAmount
 import com.sorda.contracts.BidContract
 import com.sorda.contracts.ItemContract
 import net.corda.core.contracts.Command
@@ -69,6 +71,12 @@ class TransferItemFlow (
                 .addCommand(itemCommand)
                 .addCommand(bidCommand)
 
+        addMoveFungibleTokens(
+                transactionBuilder = utx,
+                serviceHub = serviceHub,
+                partiesAndAmounts = listOf(PartyAndAmount(newOwner, oldBidState.state.data.lastPrice)),
+                changeHolder = oldItem.owner)
+
         val ptx = serviceHub.signInitialTransaction(utx)
 
         val otherPartySession = initiateFlow(newOwner)
@@ -78,7 +86,7 @@ class TransferItemFlow (
         )
 
         // sessions with the non-local participants
-        return subFlow(FinalityFlow(stx, listOf(),
+        return subFlow(FinalityFlow(stx, listOf(initiateFlow(newOwner)),
                 END.childProgressTracker()))
     }
 }
