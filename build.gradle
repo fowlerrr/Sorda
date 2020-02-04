@@ -67,6 +67,12 @@ allprojects {
         preserveFileTimestamps = false
         reproducibleFileOrder = true
     }
+
+    compileKotlin {
+        kotlinOptions {
+            freeCompilerArgs = ["-Xnormalize-constructor-calls=enable"]
+        }
+    }
 }
 apply plugin: 'net.corda.plugins.cordapp'
 apply plugin: 'net.corda.plugins.cordformation'
