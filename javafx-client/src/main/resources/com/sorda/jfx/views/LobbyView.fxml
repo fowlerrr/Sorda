@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<Pane fx:id="listItemButton" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #383838;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #383838;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
    <children>
       <Label layoutX="218.0" layoutY="14.0" prefHeight="60.0" prefWidth="165.0" text="Corda Auction" textFill="WHITE">
          <font>
@@ -40,16 +40,34 @@
           </Tab>
           <Tab fx:id="myBidsTab" text="My Bids">
             <content>
-              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <TableView fx:id="myBidsTable" layoutX="14.0" layoutY="14.0" prefHeight="218.0" prefWidth="522.0">
+                          <columns>
+                            <TableColumn fx:id="myBidDescriptionColumn" prefWidth="145.0" text="Description" />
+                            <TableColumn fx:id="myBidAmountBidColumn" prefWidth="115.0" text="Amount Bid" />
+                              <TableColumn fx:id="myBidStatusColumn" prefWidth="111.0" text="Bid Status" />
+                              <TableColumn fx:id="myBidTimeLeftColumn" prefWidth="148.0" text="Time Left" />
+                          </columns>
+                        </TableView>
+                     </children></AnchorPane>
             </content>
           </Tab>
             <Tab fx:id="myItemsTab" text="My Items">
                <content>
-                  <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+                  <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <TableView fx:id="myItemsTable" layoutX="14.0" layoutY="14.0" prefHeight="184.0" prefWidth="517.0">
+                          <columns>
+                            <TableColumn fx:id="myItemsNameColumn" prefWidth="396.0" text="Description" />
+                            <TableColumn fx:id="myItemsListedColumn" minWidth="0.0" prefWidth="120.0" text="Listed" />
+                          </columns>
+                        </TableView>
+                        <Button fx:id="listItemButton" layoutX="14.0" layoutY="202.0" mnemonicParsing="false" text="List Item" />
+                     </children></AnchorPane>
                </content>
             </Tab>
         </tabs>
       </TabPane>
-      <Button layoutX="26.0" layoutY="350.0" mnemonicParsing="false" text="List Item" />
    </children>
 </Pane>

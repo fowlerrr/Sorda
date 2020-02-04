@@ -2,8 +2,12 @@ package com.sorda.jfx.controllers
 
 import com.sorda.flows.session.CreateAndListItemFlow
 import com.sorda.flows.session.GetListedItemsFlow
+import com.sorda.jfx.BidData
+import com.sorda.jfx.BidStatus
+import com.sorda.jfx.ItemData
 import com.sorda.jfx.NodeRPCConnection
 import com.sorda.states.BidState
+import com.sorda.states.ItemState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.startFlow
 import net.corda.core.node.NodeInfo
@@ -59,6 +63,28 @@ class NodeController: Controller() {
                     .startFlow { GetListedItemsFlow.Initiator() }
                     .returnValue
                     .getOrThrow(Duration.ofSeconds(20))
+    }
+
+    fun getMyItems(): List<ItemData> {
+        val listedItems = getListedItems()
+        return nodeRPCConnection.proxy.vaultQuery(ItemState::class.java).states.map {
+            it.state.data
+        }.map {
+            val listed = listedItems.any { bidState -> bidState.itemLinearId == it.linearId }
+            ItemData(it, listed)
+        }
+    }
+
+    fun getMyBids(): List<BidData> {
+        val ourParty = ourIdentity.legalIdentities.last()
+        val listedItems = getListedItems()
+        return nodeRPCConnection.proxy.vaultQuery(BidState::class.java).states.map {
+            it.state.data
+        }.filter {
+            it.issuer != ourParty && it.lastSuccessfulBidder == ourParty
+        }.map {
+            BidData(it, BidStatus.UNKNOWN)
+        }
     }
 
     fun bidOnItem(bidStateId: UniqueIdentifier, amountToBid: Double) {

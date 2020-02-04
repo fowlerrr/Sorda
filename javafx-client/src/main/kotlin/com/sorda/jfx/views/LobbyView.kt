@@ -1,5 +1,8 @@
 package com.sorda.jfx.views
 
+import com.r3.corda.lib.tokens.contracts.types.TokenType
+import com.sorda.jfx.BidData
+import com.sorda.jfx.ItemData
 import com.sorda.jfx.controllers.AlertHelper
 import com.sorda.jfx.controllers.NodeController
 import com.sorda.states.BidState
@@ -11,8 +14,12 @@ import javafx.scene.control.Tab
 import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
 import javafx.scene.control.TextField
+import net.corda.core.contracts.Amount
 import tornadofx.View
 import tornadofx.selectedItem
+import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 
 class LobbyView : View("Main controller")  {
@@ -31,8 +38,18 @@ class LobbyView : View("Main controller")  {
     private val listedByColumn by fxid<TableColumn<BidState, String>>()
     private val auctionEndColumn by fxid<TableColumn<BidState, String>>()
 
+    private val myBidsTable by fxid<TableView<BidData>>()
+    private val myBidDescriptionColumn by fxid<TableColumn<BidData, String>>()
+    private val myBidAmountBidColumn by fxid<TableColumn<BidData, String>>()
+    private val myBidStatusColumn by fxid<TableColumn<BidData, String>>()
+    private val myBidTimeLeftColumn by fxid<TableColumn<BidData, String>>()
+
+    private val myItemsTable by fxid<TableView<ItemData>>()
+    private val myItemsNameColumn by fxid<TableColumn<ItemData, String>>()
+    private val myItemsListedColumn by fxid<TableColumn<ItemData, String>>()
+
     private val bidButton by fxid<Button>()
-    private val bidAmountField by fxid<TextField>()
+    private val bidAmount by fxid<TextField>()
 
     init {
         refreshListedItems()
@@ -40,26 +57,40 @@ class LobbyView : View("Main controller")  {
         myBidsTab.setOnSelectionChanged { refreshMyBids() }
         myItemsTab.setOnSelectionChanged { refreshMyItems() }
         bidButton.setOnAction { handleBidButtonAction() }
+
+        // Listed items tab
+        listedDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.description) }
+        listedPriceColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.lastPrice.toReadableString()) }
+        listedByColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.issuer.name.toString()) }
+        auctionEndColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.expiry.toString()) }
+
+        // My bids tab
+        myBidDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidState.description) }
+        myBidAmountBidColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidState.lastPrice.toReadableString()) }
+        myBidStatusColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidStatus.toString()) }
+        myBidTimeLeftColumn.setCellValueFactory { cellData -> SimpleStringProperty(computeTimeLeft(cellData.value.bidState.expiry).toString()) }
+
+        // My items tab
+        myItemsNameColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.itemState.name) }
+        myItemsListedColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.listed.toString()) }
     }
 
     private fun refreshListedItems() {
         listedItemsTable.items?.clear()
         val currentItems = nodeController.getListedItems()
-
-        listedDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.description) }
-        listedPriceColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.lastPrice.toString()) }
-        listedByColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.issuer.name.toString()) }
-        auctionEndColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.expiry.toString()) }
-
         listedItemsTable.items.addAll(currentItems)
     }
 
-    private fun refreshMyItems() {
-        
+    private fun refreshMyBids() {
+        myBidsTable.items?.clear()
+        val myBids = nodeController.getMyBids()
+        myBidsTable.items.addAll(myBids)
     }
 
-    private fun refreshMyBids() {
-
+    private fun refreshMyItems() {
+        myItemsTable.items?.clear()
+        val myItems = nodeController.getMyItems()
+        myItemsTable.items.addAll(myItems)
     }
 
     private fun handleBidButtonAction() {
@@ -69,12 +100,20 @@ class LobbyView : View("Main controller")  {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "Please select an item to bid on!")
             return
         }
-        val bidAmount = bidAmountField.text
+        val bidAmount = bidAmount.text
         if (bidAmount.isNullOrBlank() || bidAmount.toDoubleOrNull() == null) {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The bid amount must be a number!")
             return
         }
 
         nodeController.bidOnItem(selectedItem.itemLinearId, bidAmount.toDouble())
+    }
+
+    private fun computeTimeLeft(deadline: Instant): Duration {
+        return Duration.of(deadline.toEpochMilli() - Instant.now().toEpochMilli(), ChronoUnit.MINUTES)
+    }
+
+    private fun Amount<TokenType>.toReadableString(): String {
+        return token.tokenIdentifier + quantity
     }
 }
