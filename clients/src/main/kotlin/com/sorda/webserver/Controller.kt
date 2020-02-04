@@ -1,9 +1,10 @@
 package com.sorda.webserver
 
 
-import com.sorda.flows.session.CreateAndListItemFlow
-import com.sorda.flows.session.ListItemFlow
+import com.sorda.flows.session.*
+import com.sorda.flows.session.GetListedItemsFlow.Initiator
 import com.sorda.flows.tokens.IssueSordaTokens
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.messaging.startFlow
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
@@ -12,9 +13,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import sun.security.x509.UniqueIdentity
+import java.sql.Timestamp
 import java.time.Instant
+import java.util.*
 
-
+@CrossOrigin(origins = ["*"])
 @RestController
 @RequestMapping("/") // The paths for HTTP requests are relative to this base path.
 class Controller(rpc: NodeRPCConnection) {
@@ -66,10 +70,10 @@ class Controller(rpc: NodeRPCConnection) {
     fun listNewItem (@RequestBody newItem: NewItem): ResponseEntity<Map<String, Any>> = try {
         Controller.logger.info("Creating an account on node ", myIdentity)
         val txHash= proxy.startFlow(::CreateAndListItemFlow, newItem.description,
-                newItem.amount, Instant.now()).returnValue.getOrThrow()
+                newItem.amount, newItem.expiry).returnValue.getOrThrow()
 
         ResponseEntity.status(HttpStatus.CREATED).body(mapOf(
-                "hash" to txHash,
+                "hash" to txHash.toString(),
                 "message" to "New item with description ${newItem.description} created on node $myLegalName"))
     }
     catch (ex: Throwable) {
@@ -78,14 +82,61 @@ class Controller(rpc: NodeRPCConnection) {
                 mapOf("error" to ex.localizedMessage.toString()))
     }
 
+    @GetMapping("/items")
+    fun getItems() : List<Item> {
+        val items = proxy.startFlow(::Initiator).returnValue.getOrThrow()
+        return items.map {
+            Item(it.description, it.lastPrice.quantity.toDouble(), Timestamp.from(it.expiry), it.linearId.toString(), it.itemLinearId.toString(), it.lastSuccessfulBidder.toString())
+        }.distinctBy {
+            it.itemId
+        }
+    }
+
+    @GetMapping("/items2")
+    fun getAllItems() : List<Item2> {
+        val items = proxy.startFlow(GetAllItemsFlow::Initiator).returnValue.getOrThrow()
+        return items.map {
+            Item2(it.name, it.owner.name.toString(), it.linearId.toString())
+        }.distinctBy{it.id}
+    }
+
+    @PostMapping("/bid")
+    fun bid(@RequestBody bid:Bid) : ResponseEntity<Any> {
+        return try {
+            val items = proxy.startFlow(GetAllItemsFlow::Initiator).returnValue.getOrThrow()
+            val match = items.firstOrNull{it.linearId.toString() == bid.itemId} ?: return ResponseEntity.notFound().build()
+
+            proxy.startFlow(::PlaceBidFirstFlow, match.owner, UniqueIdentifier(id = UUID.fromString(bid.bidId)),
+                            bid.amount).returnValue.getOrThrow()
+            proxy.startFlow(::PlaceBidSecondFlow, match.owner, UniqueIdentifier(id = UUID.fromString(bid.bidId)),
+                            bid.amount).returnValue.getOrThrow()
+
+            ResponseEntity.noContent().build()
+        } catch(e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.message)
+        }
+    }
 }
+
+data class Bid(val itemId: String, val bidId: String, val amount: Double)
 
 data class NewItem constructor (
     val description: String,
-    val amount: Double
+    val amount: Double,
+    val expiry: Instant
 )
 
 data class AddTokens constructor(
     val amount: Double
 )
 
+data class Item2(val description: String, val owner: String, val id: String)
+
+data class Item(
+        val description: String,
+        val lastPrice: Double,
+        val expiry: Timestamp,
+        val bidId: String,
+        val itemId: String,
+        val lastBidder: String
+)

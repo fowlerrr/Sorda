@@ -25,7 +25,7 @@ import java.time.Instant
 class CreateAndListItemFlow (
         private val description: String,
         private val lastPrice: Double,
-        private val expiry: Instant
+        private val expiry: Instant = Instant.now()
 ) : FlowLogic<SignedTransaction>() {
 
     override val progressTracker: ProgressTracker = tracker()

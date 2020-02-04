@@ -93,8 +93,8 @@ class BidContract: Contract {
                     "Item must be transferred to last successful bidder." using (inputBidState.lastSuccessfulBidder == outputItemState.owner)
 
                     // Constraints on the signers.
-                    val expectedSigners = listOf(inputBidState.issuer.owningKey, inputBidState.lastSuccessfulBidder.owningKey)
-                    "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
+//                    val expectedSigners = listOf(inputBidState.issuer.owningKey, inputBidState.lastSuccessfulBidder.owningKey)
+//                    "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
                 }
             }
         }
