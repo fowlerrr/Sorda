@@ -2,6 +2,7 @@ package com.sorda.jfx.controllers
 
 import com.sorda.flows.session.CreateAndListItemFlow
 import com.sorda.flows.session.GetListedItemsFlow
+import com.sorda.flows.session.ListItemFlow
 import com.sorda.flows.session.PlaceBidFirstFlow
 import com.sorda.flows.session.PlaceBidSecondFlow
 import com.sorda.jfx.BidData
@@ -16,6 +17,7 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.getOrThrow
 import tornadofx.Controller
+import utils.SORDA
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.Executors
@@ -65,7 +67,7 @@ class NodeController: Controller() {
         return nodeRPCConnection.proxy
                     .startFlow { GetListedItemsFlow.Initiator() }
                     .returnValue
-                    .getOrThrow(Duration.ofSeconds(20))
+                    .getOrThrow(Duration.ofSeconds(20)).distinctBy { it.itemLinearId }
     }
 
     fun getMyItems(): List<ItemData> {
@@ -103,6 +105,15 @@ class NodeController: Controller() {
         nodeRPCConnection.proxy.startFlow({
             issuer, itemId, offer -> PlaceBidSecondFlow(issuer, itemId, offer)
         }, bidState.issuer, bidState.linearId, offerPrice).returnValue.getOrThrow(Duration.ofSeconds(20))
+    }
+
+    fun listItem(itemState: ItemState, startingPrice: Double, expiry: Instant) {
+        flowExecutorPool.submit {
+            nodeRPCConnection.proxy
+                    .startFlow({ item, price, expires -> ListItemFlow(item, price, expires) }, itemState, startingPrice.SORDA, expiry)
+                    .returnValue
+                    .getOrThrow()
+        }
     }
 
     private fun initialiseNodeRPCConnection(host: String, port: Int, username: String, password: String) {

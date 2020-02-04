@@ -10,7 +10,6 @@ import javafx.beans.property.SimpleStringProperty
 import javafx.scene.Parent
 import javafx.scene.control.Alert
 import javafx.scene.control.Button
-import javafx.scene.control.DatePicker
 import javafx.scene.control.Tab
 import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
@@ -18,12 +17,10 @@ import javafx.scene.control.TextField
 import net.corda.core.contracts.Amount
 import tornadofx.View
 import tornadofx.selectedItem
-import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
+import java.time.format.DateTimeFormatter
 
 
 class LobbyView : View("Main controller")  {
@@ -39,6 +36,7 @@ class LobbyView : View("Main controller")  {
     private val listedItemsTable by fxid<TableView<BidState>>()
     private val listedDescriptionColumn by fxid<TableColumn<BidState, String>>()
     private val listedPriceColumn by fxid<TableColumn<BidState, String>>()
+    private val listedHighestBidderColumn by fxid<TableColumn<BidState, String>>()
     private val listedByColumn by fxid<TableColumn<BidState, String>>()
     private val auctionEndColumn by fxid<TableColumn<BidState, String>>()
 
@@ -46,7 +44,7 @@ class LobbyView : View("Main controller")  {
     private val myBidDescriptionColumn by fxid<TableColumn<BidData, String>>()
     private val myBidAmountBidColumn by fxid<TableColumn<BidData, String>>()
     private val myBidStatusColumn by fxid<TableColumn<BidData, String>>()
-    private val myBidTimeLeftColumn by fxid<TableColumn<BidData, String>>()
+    private val myBidAuctionEndColumn by fxid<TableColumn<BidData, String>>()
 
     private val myItemsTable by fxid<TableView<ItemData>>()
     private val myItemsNameColumn by fxid<TableColumn<ItemData, String>>()
@@ -56,9 +54,10 @@ class LobbyView : View("Main controller")  {
     private val bidAmount by fxid<TextField>()
 
     private val listItemButton by fxid<Button>()
+    private val listNewItemButton by fxid<Button>()
     private val listItemDescription by fxid<TextField>()
     private val listItemStartingPrice by fxid<TextField>()
-    private val listItemExpiry by fxid<DatePicker>()
+    private val listItemExpiry by fxid<TextField>()
 
     init {
         currentStage?.height = 600.0
@@ -69,11 +68,13 @@ class LobbyView : View("Main controller")  {
         myBidsTab.setOnSelectionChanged { refreshMyBids() }
         myItemsTab.setOnSelectionChanged { refreshMyItems() }
         bidButton.setOnAction { handleBidButtonAction() }
+        listNewItemButton.setOnAction { handleListNewItemButtonAction() }
         listItemButton.setOnAction { handleListItemButtonAction() }
 
         // Listed items tab
         listedDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.description) }
         listedPriceColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.lastPrice.toReadableString()) }
+        listedHighestBidderColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.lastSuccessfulBidder.name.organisation) }
         listedByColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.issuer.name.organisation) }
         auctionEndColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.expiry.toString()) }
 
@@ -81,7 +82,7 @@ class LobbyView : View("Main controller")  {
         myBidDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidState.description) }
         myBidAmountBidColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidState.lastPrice.toReadableString()) }
         myBidStatusColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidStatus.toString()) }
-        myBidTimeLeftColumn.setCellValueFactory { cellData -> SimpleStringProperty(computeTimeLeft(cellData.value.bidState.expiry).toString()) }
+        myBidAuctionEndColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.bidState.expiry.toString()) }
 
         // My items tab
         myItemsNameColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.itemState.name) }
@@ -106,7 +107,7 @@ class LobbyView : View("Main controller")  {
         myItemsTable.items.addAll(myItems)
         listItemDescription.clear()
         listItemStartingPrice.clear()
-        listItemExpiry.editor.clear()
+        listItemExpiry.text = "2020-02-04T23:00:00" // placeholder
     }
 
     private fun handleBidButtonAction() {
@@ -116,18 +117,30 @@ class LobbyView : View("Main controller")  {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "Please select an item to bid on!")
             return
         }
+
         val bidAmount = bidAmount.text
         if (bidAmount.isNullOrBlank() || bidAmount.toDoubleOrNull() == null) {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The bid amount must be a number!")
             return
         }
 
+        if (selectedItem.issuer == nodeController.ourIdentity.legalIdentities.last()) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "You cannot bid on your own listing!")
+            return
+        }
+
+        val bidAmountVal = bidAmount.toDouble()
+        if (bidAmountVal <= selectedItem.lastPrice.quantity) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "Your bid must be higher than the current price!")
+            return
+        }
+
         nodeController.bidOnItem(selectedItem, bidAmount.toDouble())
-        refreshMyBids()
+        refreshListedItems()
     }
 
-    private fun handleListItemButtonAction() {
-        val owner = listItemButton.scene.window
+    private fun handleListNewItemButtonAction() {
+        val owner = listNewItemButton.scene.window
         val description = listItemDescription.text
         if (description == null) {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "Please input an item description!")
@@ -140,17 +153,55 @@ class LobbyView : View("Main controller")  {
         }
         val startingPrice = startingPriceString.toDoubleOrNull() ?: 0.0
 
-        val expiry = listItemExpiry.value
-        if (expiry == null || expiry.isBefore(LocalDate.now())) {
+        val expiryString = listItemExpiry.text
+        val expiry = try {
+            LocalDateTime.parse(expiryString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        } catch (e: Exception) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date!")
+            return
+        }
+        if (expiry.isBefore(LocalDateTime.now())) {
             AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date in the future!")
             return
         }
-        nodeController.createAndListItem(description, startingPrice, Instant.from(expiry.atStartOfDay(ZoneId.systemDefault())))
+        nodeController.createAndListItem(description, startingPrice, Instant.from(expiry.atOffset(ZoneOffset.UTC)))
         refreshMyItems()
     }
 
-    private fun computeTimeLeft(deadline: Instant): Duration {
-        return Duration.of(deadline.toEpochMilli() - Instant.now().toEpochMilli(), ChronoUnit.MINUTES)
+    private fun handleListItemButtonAction() {
+        val owner = listItemButton.scene.window
+
+        val selectedItem = myItemsTable.selectedItem
+        if (selectedItem == null) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "Please select an item to list on!")
+            return
+        }
+
+        if (selectedItem.listed) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "You cannot list an already listed item!")
+            return
+        }
+
+        val startingPriceString = listItemStartingPrice.text
+        if (startingPriceString.isNotBlank() && startingPriceString.toDoubleOrNull() == null) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The starting price must be a number!")
+            return
+        }
+        val startingPrice = startingPriceString.toDoubleOrNull() ?: 0.0
+
+        val expiryString = listItemExpiry.text
+        val expiry = try {
+            LocalDateTime.parse(expiryString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        } catch (e: Exception) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date!")
+            return
+        }
+        if (expiry.isBefore(LocalDateTime.now())) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date in the future!")
+            return
+        }
+        nodeController.listItem(selectedItem.itemState, startingPrice, Instant.from(expiry.atOffset(ZoneOffset.UTC)))
+        refreshMyItems()
     }
 
     private fun Amount<TokenType>.toReadableString(): String {
