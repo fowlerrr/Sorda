@@ -103,9 +103,6 @@ class GetListedItemsFlowTests {
             val aliceNode = startNode(providedName = ALICE_NAME, rpcUsers = listOf(user)).getOrThrow()
             val bobNode = startNode(providedName = BOB_NAME, rpcUsers = listOf(user)).getOrThrow()
 
-            val alice = aliceNode.nodeInfo.identityAndCertFromX500Name(ALICE_NAME)
-            val bob = bobNode.nodeInfo.identityAndCertFromX500Name(BOB_NAME)
-
             aliceNode.rpc.startFlowDynamic(
                 CreateAndListItemFlow::class.java,
                 "red bike",
@@ -118,9 +115,22 @@ class GetListedItemsFlowTests {
                 10.0,
                 Instant.now().plus(10, ChronoUnit.MINUTES)
             )
+            bobNode.rpc.startFlowDynamic(
+                CreateAndListItemFlow::class.java,
+                "green bike",
+                10.0,
+                Instant.now().plus(10, ChronoUnit.MINUTES)
+            )
+            bobNode.rpc.startFlowDynamic(
+                CreateAndListItemFlow::class.java,
+                "yellow bike",
+                10.0,
+                Instant.now().plus(10, ChronoUnit.MINUTES)
+            )
 
             val items = aliceNode.rpc.startFlowDynamic(GetListedItemsFlow.Initiator::class.java).returnValue.getOrThrow()
-            Assertions.assertThat(items.size).isEqualTo(2)
+            Assertions.assertThat(items.size).isEqualTo(4)
+            items.forEach { println(it.description) }
         }
     }
 }
