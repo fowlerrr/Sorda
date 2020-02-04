@@ -2,6 +2,7 @@ package com.sorda
 
 import com.sorda.flows.session.CreateAndListItemFlow
 import com.sorda.flows.session.GetListedItemsFlow
+import com.sorda.states.BidState
 import net.corda.core.concurrent.CordaFuture
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.transactions.SignedTransaction
@@ -17,7 +18,7 @@ import net.corda.testing.node.MockNetworkNotarySpec
 import net.corda.testing.node.MockNodeParameters
 import net.corda.testing.node.StartedMockNode
 import net.corda.testing.node.User
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -85,7 +86,11 @@ class GetListedItemsFlowTests {
         listedItems.map { it.description }.containsAll(listOf("New Bike", "Nice Hat", "Car"))
     }
 
-    private fun StartedMockNode.createAndListItem(description: String, price: Double, expiry: Instant) : CordaFuture<SignedTransaction> {
+    private fun StartedMockNode.createAndListItem(
+        description: String,
+        price: Double,
+        expiry: Instant
+    ) : CordaFuture<SignedTransaction> {
         val itemFuture = startFlow(CreateAndListItemFlow(
                 description = description, lastPrice = price, expiry = expiry
         ))
@@ -104,34 +109,35 @@ class GetListedItemsFlowTests {
             val aliceNode = startNode(providedName = ALICE_NAME, rpcUsers = listOf(user)).getOrThrow()
             val bobNode = startNode(providedName = BOB_NAME, rpcUsers = listOf(user)).getOrThrow()
 
-            aliceNode.rpc.startFlowDynamic(
-                CreateAndListItemFlow::class.java,
-                "red bike",
-                10.0,
-                Instant.now().plus(10, ChronoUnit.MINUTES)
-            )
-            aliceNode.rpc.startFlowDynamic(
-                CreateAndListItemFlow::class.java,
-                "blue bike",
-                10.0,
-                Instant.now().plus(10, ChronoUnit.MINUTES)
-            )
-            bobNode.rpc.startFlowDynamic(
-                CreateAndListItemFlow::class.java,
-                "green bike",
-                10.0,
-                Instant.now().plus(10, ChronoUnit.MINUTES)
-            )
-            bobNode.rpc.startFlowDynamic(
-                CreateAndListItemFlow::class.java,
-                "yellow bike",
-                10.0,
-                Instant.now().plus(10, ChronoUnit.MINUTES)
+            val listedItems = setOf(
+                aliceNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "red bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single(),
+                aliceNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "blue bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single(),
+                bobNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "green bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single(),
+                bobNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "yellow bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single()
             )
 
             val items = aliceNode.rpc.startFlowDynamic(GetListedItemsFlow.Initiator::class.java).returnValue.getOrThrow()
-            Assertions.assertThat(items.size).isEqualTo(4)
-            items.forEach { println("$it") }
+            assertThat(items.toSet()).isEqualTo(listedItems)
         }
     }
 }

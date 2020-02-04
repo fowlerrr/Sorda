@@ -9,6 +9,7 @@ import net.corda.core.contracts.requireSingleCommand
 import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 import utils.SORDA
+import java.time.Instant
 
 class BidContract: Contract {
     companion object {
@@ -51,6 +52,7 @@ class BidContract: Contract {
                     // Bid specific constraints
                     "Listing price should be positive." using (outputState.lastPrice > 0.SORDA)
                     "Issuer must be the lastSuccessfulBidder upon initial listing.." using (outputState.issuer == outputState.lastSuccessfulBidder)
+                    "Expiry cannot be in the past." using (outputState.expiry >= Instant.now())
                     // Constraints on the signers
                     // TODO: do we need any?
                 }
