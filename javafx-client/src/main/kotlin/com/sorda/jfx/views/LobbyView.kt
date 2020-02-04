@@ -10,6 +10,7 @@ import javafx.beans.property.SimpleStringProperty
 import javafx.scene.Parent
 import javafx.scene.control.Alert
 import javafx.scene.control.Button
+import javafx.scene.control.DatePicker
 import javafx.scene.control.Tab
 import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
@@ -19,6 +20,8 @@ import tornadofx.View
 import tornadofx.selectedItem
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
 
@@ -51,12 +54,18 @@ class LobbyView : View("Main controller")  {
     private val bidButton by fxid<Button>()
     private val bidAmount by fxid<TextField>()
 
+    private val listItemButton by fxid<Button>()
+    private val listItemDescription by fxid<TextField>()
+    private val listItemStartingPrice by fxid<TextField>()
+    private val listItemExpiry by fxid<DatePicker>()
+
     init {
         refreshListedItems()
         listedItemsTab.setOnSelectionChanged { refreshListedItems() }
         myBidsTab.setOnSelectionChanged { refreshMyBids() }
         myItemsTab.setOnSelectionChanged { refreshMyItems() }
         bidButton.setOnAction { handleBidButtonAction() }
+        listItemButton.setOnAction { handleListItemButtonAction() }
 
         // Listed items tab
         listedDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.description) }
@@ -91,6 +100,9 @@ class LobbyView : View("Main controller")  {
         myItemsTable.items?.clear()
         val myItems = nodeController.getMyItems()
         myItemsTable.items.addAll(myItems)
+        listItemDescription.clear()
+        listItemStartingPrice.clear()
+        listItemExpiry.editor.clear()
     }
 
     private fun handleBidButtonAction() {
@@ -107,6 +119,30 @@ class LobbyView : View("Main controller")  {
         }
 
         nodeController.bidOnItem(selectedItem.itemLinearId, bidAmount.toDouble())
+        refreshMyBids()
+    }
+
+    private fun handleListItemButtonAction() {
+        val owner = listItemButton.scene.window
+        val description = listItemDescription.text
+        if (description == null) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "Please input an item description!")
+            return
+        }
+        val startingPriceString = listItemStartingPrice.text
+        if (startingPriceString.isNotBlank() && startingPriceString.toDoubleOrNull() == null) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The starting price must be a number!")
+            return
+        }
+        val startingPrice = startingPriceString.toDoubleOrNull() ?: 0.0
+
+        val expiry = listItemExpiry.value
+        if (expiry == null || expiry.isBefore(LocalDate.now())) {
+            AlertHelper.showAlert(Alert.AlertType.ERROR, owner, "Error!", "The expiry must be a valid date in the future!")
+            return
+        }
+        nodeController.createAndListItem(description, startingPrice, Instant.ofEpochMilli(expiry.atStartOfDay().toEpochSecond(ZoneOffset.UTC)))
+        refreshMyItems()
     }
 
     private fun computeTimeLeft(deadline: Instant): Duration {
