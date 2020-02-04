@@ -8,6 +8,8 @@ import net.corda.core.flows.InitiatedBy
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.node.ServiceHub
+import net.corda.core.node.services.Vault
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.unwrap
 import java.time.Instant
 
@@ -52,7 +54,8 @@ object GetListedItemsFlow {
     }
 
     fun getPayload(serviceHub: ServiceHub): List<BidState> {
-        return serviceHub.vaultService.queryBy(BidState::class.java).states.map {
+        val criteria = QueryCriteria.VaultQueryCriteria(status = Vault.StateStatus.UNCONSUMED)
+        return serviceHub.vaultService.queryBy(BidState::class.java, criteria = criteria).states.map {
             it.state.data
         }.filter {
             it.expiry > Instant.now()
