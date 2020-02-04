@@ -76,6 +76,7 @@ class CreateAndListItemFlow (
                 description = description,
                 issuer = ourIdentity,
                 expiry = expiry,
+                bidLinearId = bidState.linearId,
                 itemLinearId = itemState.linearId)
 
         println("Writing $bidState")

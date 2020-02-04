@@ -16,6 +16,7 @@ data class ExpiryState (
         val issuer: Party,
         val expiry: Instant,
         val itemLinearId: UniqueIdentifier,
+        val bidLinearId: UniqueIdentifier,
         override val linearId: UniqueIdentifier = UniqueIdentifier()
 ) : SchedulableState, LinearState {
 
@@ -23,6 +24,9 @@ data class ExpiryState (
         get() = listOf<Party>(issuer)
 
     override fun nextScheduledActivity(thisStateRef: StateRef, flowLogicRefFactory: FlowLogicRefFactory): ScheduledActivity? {
-        return ScheduledActivity(flowLogicRefFactory.create(TransferItemFlow::class.java, itemLinearId, linearId), expiry)
+        return ScheduledActivity(flowLogicRefFactory.create(TransferItemFlow::class.java,
+                itemLinearId,
+                bidLinearId
+                ), expiry)
     }
 }
