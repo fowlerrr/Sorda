@@ -17,8 +17,9 @@ import net.corda.core.utilities.ProgressTracker
 
 
 /**
- * Transfer of Items from one party to another after a successful auction
+ * End the Auction.
  *
+ * Transfer of Items from one party to another and closing the Bid after a successful auction
  */
 
 @InitiatingFlow

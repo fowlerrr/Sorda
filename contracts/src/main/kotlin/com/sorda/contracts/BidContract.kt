@@ -1,6 +1,7 @@
 package com.sorda.contracts
 
 import com.sorda.states.BidState
+import com.sorda.states.ItemState
 import net.corda.core.contracts.CommandData
 import net.corda.core.contracts.Contract
 import net.corda.core.contracts.TypeOnlyCommandData
@@ -49,6 +50,7 @@ class BidContract: Contract {
                     val outputState = tx.outputsOfType<BidState>().single()
                     // Bid specific constraints
                     "Listing price should be positive." using (outputState.lastPrice > 0.SORDA)
+                    "Issuer must be the lastSuccessfulBidder upon initial listing.." using (outputState.issuer == outputState.lastSuccessfulBidder)
                     // Constraints on the signers
                     // TODO: do we need any?
                 }
@@ -77,7 +79,21 @@ class BidContract: Contract {
                 }
             }
             is Commands.CloseBid -> {
+                // The Item gets Transferred to the latest successful bidder
+                requireThat {
+                    // Constraints on the shape of the Transaction
+                    verifySingleInputState()
 
+                    val inputBidState = tx.inputsOfType<BidState>().single()
+                    val outputItemState = tx.outputsOfType<ItemState>().single()
+
+                    // Check that Item gets updated according to Bid
+                    "Item must be transferred to last successful bidder." using (inputBidState.lastSuccessfulBidder == outputItemState.owner)
+
+                    // Constraints on the signers.
+                    val expectedSigners = listOf(inputBidState.issuer.owningKey, inputBidState.lastSuccessfulBidder.owningKey)
+                    "The issuer and lastSuccessfulBidder must be signers." using (command.signers.containsAll(expectedSigners))
+                }
             }
         }
     }
