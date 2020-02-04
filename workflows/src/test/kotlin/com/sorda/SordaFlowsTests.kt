@@ -12,6 +12,7 @@ import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.MockNetworkNotarySpec
 import net.corda.testing.node.MockNodeParameters
 import net.corda.testing.node.StartedMockNode
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -51,6 +52,11 @@ class SordaFlowsTests {
         mockNetwork.runNetwork()
     }
 
+    @After
+    fun tearDown () {
+        mockNetwork.stopNodes()
+    }
+
     fun issueTokens (party: Party, quantity: Double) : CordaFuture<SignedTransaction> {
         val d = nodeA.startFlow(IssueSordaTokens(quantity = quantity))
         mockNetwork.runNetwork()
@@ -58,7 +64,7 @@ class SordaFlowsTests {
     }
 
     @Test
-    fun `Sorda Test`() {
+    fun `Sorda token Test`() {
         val nodeA = nodeA.info.legalIdentities.single()
         val nodeB = nodeB.info.legalIdentities.single()
 
@@ -66,8 +72,6 @@ class SordaFlowsTests {
         val txIssue1 = issueTokens(nodeA, 600.0).getOrThrow()
         val fungibleToken1 = txIssue1.coreTransaction.outputsOfType<FungibleToken>().single()
         assertEquals (fungibleToken1.amount.quantity, 600L)
-
-        mockNetwork.stopNodes()
     }
 
 }

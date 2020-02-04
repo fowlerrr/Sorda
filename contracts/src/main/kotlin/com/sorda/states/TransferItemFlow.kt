@@ -1,12 +1,22 @@
 package com.sorda.states
 
 import co.paralleluniverse.fibers.Suspendable
+import com.r3.corda.lib.tokens.workflows.flows.move.addMoveFungibleTokens
+import com.r3.corda.lib.tokens.workflows.types.PartyAndAmount
 import com.sorda.contracts.BidContract
 import com.sorda.contracts.ItemContract
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.contracts.requireThat
-import net.corda.core.flows.*
+import net.corda.core.flows.CollectSignaturesFlow
+import net.corda.core.flows.FinalityFlow
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.FlowSession
+import net.corda.core.flows.InitiatedBy
+import net.corda.core.flows.InitiatingFlow
+import net.corda.core.flows.ReceiveFinalityFlow
+import net.corda.core.flows.SchedulableFlow
+import net.corda.core.flows.SignTransactionFlow
 import net.corda.core.identity.Party
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
@@ -15,8 +25,9 @@ import net.corda.core.utilities.ProgressTracker
 
 
 /**
- * Transfer of Items from one party to another after a successful auction
+ * End the Auction.
  *
+ * Transfer of Items from one party to another and closing the Bid after a successful auction
  */
 
 @InitiatingFlow
@@ -69,7 +80,17 @@ class TransferItemFlow (
                 .addCommand(itemCommand)
                 .addCommand(bidCommand)
 
+        addMoveFungibleTokens(
+                transactionBuilder = utx,
+                serviceHub = serviceHub,
+                partiesAndAmounts = listOf(PartyAndAmount(newOwner, oldBidState.state.data.lastPrice)),
+                changeHolder = oldItem.owner)
+
         val ptx = serviceHub.signInitialTransaction(utx)
+
+        if (newOwner == ourIdentity) {
+            return subFlow(FinalityFlow(ptx, listOf(), END.childProgressTracker()))
+        }
 
         val otherPartySession = initiateFlow(newOwner)
         val stx = subFlow(CollectSignaturesFlow(
@@ -78,8 +99,7 @@ class TransferItemFlow (
         )
 
         // sessions with the non-local participants
-        return subFlow(FinalityFlow(stx, listOf(),
-                END.childProgressTracker()))
+        return subFlow(FinalityFlow(stx, listOf(otherPartySession), END.childProgressTracker()))
     }
 }
 

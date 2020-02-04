@@ -1,20 +1,31 @@
 package com.sorda
 
 import com.sorda.flows.session.CreateAndListItemFlow
+import com.sorda.flows.session.GetAllItemsFlow
 import com.sorda.flows.session.GetListedItemsFlow
+import com.sorda.states.BidState
+import com.sorda.states.ItemState
 import net.corda.core.concurrent.CordaFuture
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
+import net.corda.node.services.Permissions
 import net.corda.testing.common.internal.testNetworkParameters
+import net.corda.testing.core.ALICE_NAME
+import net.corda.testing.core.BOB_NAME
+import net.corda.testing.driver.DriverParameters
+import net.corda.testing.driver.driver
 import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.MockNetworkNotarySpec
 import net.corda.testing.node.MockNodeParameters
 import net.corda.testing.node.StartedMockNode
+import net.corda.testing.node.User
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class GetListedItemsFlowTests {
 
@@ -71,12 +82,17 @@ class GetListedItemsFlowTests {
 
         // Party C runs get item flow
         val listedItems = nodeC.startFlow(GetListedItemsFlow.Initiator()).getOrThrow()
+//        mockNetwork.runNetwork()
 
         assert(listedItems.size == 3)
         listedItems.map { it.description }.containsAll(listOf("New Bike", "Nice Hat", "Car"))
     }
 
-    private fun StartedMockNode.createAndListItem(description: String, price: Double, expiry: Instant) : CordaFuture<SignedTransaction> {
+    private fun StartedMockNode.createAndListItem(
+        description: String,
+        price: Double,
+        expiry: Instant
+    ) : CordaFuture<SignedTransaction> {
         val itemFuture = startFlow(CreateAndListItemFlow(
                 description = description, lastPrice = price, expiry = expiry
         ))
@@ -84,5 +100,52 @@ class GetListedItemsFlowTests {
         return itemFuture
     }
 
+    @Test
+    fun `get items from all nodes`() {
+        driver(
+            DriverParameters(
+                startNodesInProcess = true
+            )
+        ) {
+            val user = User("mark", "dadada", setOf(Permissions.all()))
+            val aliceNode = startNode(providedName = ALICE_NAME, rpcUsers = listOf(user)).getOrThrow()
+            val bobNode = startNode(providedName = BOB_NAME, rpcUsers = listOf(user)).getOrThrow()
+
+            val listedItems = setOf(
+                aliceNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "red bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow(),
+                aliceNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "blue bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow(),
+                bobNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "green bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow(),
+                bobNode.rpc.startFlowDynamic(
+                    CreateAndListItemFlow::class.java,
+                    "yellow bike",
+                    10.0,
+                    Instant.now().plus(10, ChronoUnit.MINUTES)
+                ).returnValue.getOrThrow()
+            )
+
+            val items = aliceNode.rpc.startFlowDynamic(GetListedItemsFlow.Initiator::class.java).returnValue.getOrThrow()
+            val expectedListed = listedItems.map { it.coreTransaction.outputsOfType(BidState::class.java).single() }
+            assertThat(items.toSet()).containsAll(expectedListed)
+
+            val allItems = aliceNode.rpc.startFlowDynamic(GetAllItemsFlow.Initiator::class.java).returnValue.getOrThrow()
+            val expectedAll = listedItems.map { it.coreTransaction.outputsOfType<ItemState>().single() }
+            assertThat(allItems.toSet()).containsAll(expectedAll)
+        }
+    }
 }
 
