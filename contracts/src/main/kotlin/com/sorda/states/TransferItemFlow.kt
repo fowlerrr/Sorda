@@ -104,6 +104,7 @@ class TransferItemFlowResponder(
         val transactionSigner: SignTransactionFlow
         transactionSigner = object : SignTransactionFlow(counterpartySession) {
             @Suspendable override fun checkTransaction(stx: SignedTransaction) = requireThat {
+                //TODO: uncomment this
 //                val output = stx.tx.outputsOfType<ItemState>().single()
 //                "I must receive the item" using (serviceHub.myInfo.legalIdentities.contains(output.owner))
             }
