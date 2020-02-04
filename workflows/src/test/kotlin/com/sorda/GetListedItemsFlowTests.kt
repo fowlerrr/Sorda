@@ -1,8 +1,10 @@
 package com.sorda
 
 import com.sorda.flows.session.CreateAndListItemFlow
+import com.sorda.flows.session.GetAllItemsFlow
 import com.sorda.flows.session.GetListedItemsFlow
 import com.sorda.states.BidState
+import com.sorda.states.ItemState
 import net.corda.core.concurrent.CordaFuture
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.transactions.SignedTransaction
@@ -115,29 +117,34 @@ class GetListedItemsFlowTests {
                     "red bike",
                     10.0,
                     Instant.now().plus(10, ChronoUnit.MINUTES)
-                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single(),
+                ).returnValue.getOrThrow(),
                 aliceNode.rpc.startFlowDynamic(
                     CreateAndListItemFlow::class.java,
                     "blue bike",
                     10.0,
                     Instant.now().plus(10, ChronoUnit.MINUTES)
-                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single(),
+                ).returnValue.getOrThrow(),
                 bobNode.rpc.startFlowDynamic(
                     CreateAndListItemFlow::class.java,
                     "green bike",
                     10.0,
                     Instant.now().plus(10, ChronoUnit.MINUTES)
-                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single(),
+                ).returnValue.getOrThrow(),
                 bobNode.rpc.startFlowDynamic(
                     CreateAndListItemFlow::class.java,
                     "yellow bike",
                     10.0,
                     Instant.now().plus(10, ChronoUnit.MINUTES)
-                ).returnValue.getOrThrow().coreTransaction.outputsOfType(BidState::class.java).single()
+                ).returnValue.getOrThrow()
             )
 
             val items = aliceNode.rpc.startFlowDynamic(GetListedItemsFlow.Initiator::class.java).returnValue.getOrThrow()
-            assertThat(items.toSet()).isEqualTo(listedItems)
+            val expectedListed = listedItems.map { it.coreTransaction.outputsOfType(BidState::class.java).single() }
+            assertThat(items.toSet()).containsAll(expectedListed)
+
+            val allItems = aliceNode.rpc.startFlowDynamic(GetAllItemsFlow.Initiator::class.java).returnValue.getOrThrow()
+            val expectedAll = listedItems.map { it.coreTransaction.outputsOfType<ItemState>().single() }
+            assertThat(allItems.toSet()).containsAll(expectedAll)
         }
     }
 }
