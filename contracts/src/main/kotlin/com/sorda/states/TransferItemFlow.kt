@@ -95,9 +95,9 @@ class TransferItemFlow (
 
         val ptx = serviceHub.signInitialTransaction(utx)
 
-        if (newOwner == ourIdentity) {
-            return subFlow(FinalityFlow(ptx, listOf(), END.childProgressTracker()))
-        }
+//        if (newOwner == ourIdentity) {
+//            return subFlow(FinalityFlow(ptx, listOf(), END.childProgressTracker()))
+//        }
 
         val otherPartySession = initiateFlow(newOwner)
         val stx = subFlow(CollectSignaturesFlow(

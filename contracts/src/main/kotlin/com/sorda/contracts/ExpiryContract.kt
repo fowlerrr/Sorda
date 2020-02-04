@@ -13,7 +13,7 @@ import utils.SORDA
 class ExpiryContract: Contract {
     companion object {
         @JvmStatic
-        val ID = "com.sorda.contracts.BidContract"
+        val ID = "com.sorda.contracts.ExpiryContract"
     }
 
     interface Commands : CommandData {

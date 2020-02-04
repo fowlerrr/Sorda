@@ -136,7 +136,7 @@ class PlaceBidFlowTest {
         assertEquals(partyC, bidState3.state.data.lastSuccessfulBidder,
                 "Last successful bidder should be updated.")
 
-        sleep(Duration.ofMinutes(1))
+        sleep(Duration.ofSeconds(30))
 
         // Check
 

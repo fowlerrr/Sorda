@@ -91,6 +91,8 @@ class CreateAndListItemFlow (
                 .addCommand(bidCommand)
                 .addCommand(expiryCommand)
 
+
+
         // Verify Tx
         utx.verify(serviceHub)
 
@@ -105,8 +107,20 @@ class CreateAndListItemFlow (
 //        )
 
         // sessions with the non-local participants
-        return subFlow(FinalityFlow(ptx, listOf(),
-                CreateItemFlow.Companion.END.childProgressTracker()))
+        subFlow(FinalityFlow(ptx, listOf(),
+                END.childProgressTracker()))
+
+        val utx2 = TransactionBuilder(notary = notary)
+                // .addInputState would add the input states but there's no input state for an issuance
+                .addOutputState(expiryState, ExpiryContract.ID)
+                .addCommand(expiryCommand)
+
+        val ptx2 = serviceHub.signInitialTransaction(utx2,
+                listOf(ourIdentity.owningKey)
+        )
+
+        return subFlow(FinalityFlow(ptx2, listOf(),
+                END.childProgressTracker()))
 
     }
 }

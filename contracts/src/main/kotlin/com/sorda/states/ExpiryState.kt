@@ -3,6 +3,7 @@ package com.sorda.states
 
 import com.r3.corda.lib.tokens.contracts.types.TokenType
 import com.sorda.contracts.BidContract
+import com.sorda.contracts.ExpiryContract
 import net.corda.core.contracts.*
 import net.corda.core.flows.FlowLogicRefFactory
 import net.corda.core.identity.AbstractParty
@@ -10,7 +11,7 @@ import net.corda.core.identity.Party
 
 import java.time.Instant
 
-@BelongsToContract(BidContract::class)
+@BelongsToContract(ExpiryContract::class)
 data class ExpiryState (
         val description: String,
         val issuer: Party,
