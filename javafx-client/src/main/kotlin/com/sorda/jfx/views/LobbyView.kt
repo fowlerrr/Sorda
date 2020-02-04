@@ -60,6 +60,9 @@ class LobbyView : View("Main controller")  {
     private val listItemExpiry by fxid<DatePicker>()
 
     init {
+        currentStage?.height = 600.0
+        currentStage?.width = 820.0
+
         refreshListedItems()
         listedItemsTab.setOnSelectionChanged { refreshListedItems() }
         myBidsTab.setOnSelectionChanged { refreshMyBids() }
@@ -70,7 +73,7 @@ class LobbyView : View("Main controller")  {
         // Listed items tab
         listedDescriptionColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.description) }
         listedPriceColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.lastPrice.toReadableString()) }
-        listedByColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.issuer.name.toString()) }
+        listedByColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.issuer.name.organisation) }
         auctionEndColumn.setCellValueFactory { cellData -> SimpleStringProperty(cellData.value.expiry.toString()) }
 
         // My bids tab
